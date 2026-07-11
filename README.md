@@ -18,8 +18,8 @@ Repositorio de resolución para la **Prueba Técnica 2** (Desarrollo AI-first y 
    ```
 4. Ejecutar la suite de pruebas automatizadas:
    ```bash
-   npm i
-   npm test
+   pnpm i
+   pnpm test
    ```
 
 ## Documentación

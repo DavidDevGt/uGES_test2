@@ -29,7 +29,18 @@
 - `[ ]` Implementar Page Objects (`pages/*.ts`)
 - `[ ]` Escribir Specs funcionales (flujos 1 al 12)
 - `[ ]` Escribir Specs para Cambio 2 y Cambio 4
-- `[ ]` Configurar CI (GitHub Actions)
+- `[/]` Configurar CI (GitHub Actions) — pipeline activo: estático (shellcheck, php -l, compose config, gitleaks) + smoke del entorno (seed x2 + 13 asserts); el job e2e se auto-activa cuando exista la suite
+
+## Validación automatizada (base de calidad)
+- `[x]` `scripts/verify-env.sh` — smoke test del entorno: seed idempotente + 13 asserts SQL/login (local y CI)
+- `[x]` `.github/workflows/e2e.yml` — estático → env-smoke → e2e condicional, con caché pnpm/Playwright preparada
+- `[x]` `.github/dependabot.yml` — docker (majors/minors de Moodle excluidos por D5), actions, npm
+
+## Entrega (logística — del correo y enunciado)
+- `[ ]` Justificar en README la desviación de imagen Docker (enunciado dice "Bitnami o la oficial"; ver F1)
+- `[ ]` `docs/decisions-and-ai-direction.md` CORTO (1–2 págs) — el entregable 5; AI_USAGE.md y findings.md son anexos
+- `[ ]` En `docs/40h-to-2h.md` citar que los cambios 1 y 3 fueron excluidos por el equipo (correo 2026-07-10)
+- `[ ]` Push a GitHub privado + dar acceso al equipo GES + correo de envío (antes del mar 14 mediodía)
 
 ## Documentación
 - `[ ]` Redactar `docs/40h-to-2h.md`

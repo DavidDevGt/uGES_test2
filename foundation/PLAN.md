@@ -9,7 +9,7 @@
 ## 1. Principios de ejecución
 
 1. **Spec primero, código después.** Cada componente (plugin, suite, seeding) se genera desde su sección de `SPECS.md`. Si la spec cambia, se edita la spec y se regenera — nunca al revés. Es literalmente su metodología; el repo debe demostrarla.
-2. **El entorno es un entregable.** "Lo podemos levantar sin pelear con el setup" es criterio de evaluación explícito. Objetivo: `docker compose up -d && ./scripts/seed.sh && npm test` — tres comandos, cero pasos manuales.
+2. **El entorno es un entregable.** "Lo podemos levantar sin pelear con el setup" es criterio de evaluación explícito. Objetivo: `docker compose up -d && ./scripts/seed.sh && pnpm test` — tres comandos, cero pasos manuales.
 3. **Diseñar para el quinto cambio.** La arquitectura de la suite (Page Objects + fixtures + helpers) debe hacer que cubrir un cambio nuevo cueste ~20 minutos en vivo. La sesión se gana en la arquitectura, no en la improvisación.
 4. **Evidencia desde el minuto uno.** Carpeta `docs/ai-direction/` con las specs dadas a la IA, correcciones hechas, bugs detectados en el output. Ese material es el entregable 5 y el guion de la defensa.
 5. **Asserts reales, cero humo.** Cada test verifica estado real (nota en gradebook, conteo en DB/UI, intento cerrado), nunca solo "la página cargó".

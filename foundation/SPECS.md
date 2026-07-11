@@ -16,7 +16,7 @@
 | Multi-rol simultáneo (profesor+estudiante) | Difícil | Manual | Limitado (multi-origin) | **Contexts aislados nativos** |
 | Lenguaje del equipo GES | PHP | Java | JS | **TypeScript (valorado en la JD)** |
 | Manejo de timers/espera | Pobre | Manual | Bueno | **Web-first assertions + clock** |
-| Setup para evaluadores | Requiere toolchain PHP de Moodle | Pesado | Medio | **`npm i && npx playwright install`** |
+| Setup para evaluadores | Requiere toolchain PHP de Moodle | Pesado | Medio | **`pnpm i && pnpm dlx playwright install`** |
 
 **Decisión:** Playwright. Behat queda documentado como alternativa evaluada — mencionable en la defensa como conocimiento del ecosistema Moodle.
 
