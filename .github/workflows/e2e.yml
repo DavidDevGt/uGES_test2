@@ -14,7 +14,7 @@ jobs:
     name: Análisis estático
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # gitleaks necesita el historial
 
@@ -40,7 +40,7 @@ jobs:
     outputs:
       has_e2e: ${{ steps.detect.outputs.has_e2e }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Detectar si la suite e2e ya existe
         id: detect
@@ -82,7 +82,7 @@ jobs:
 
       - name: Publicar logs como artefacto
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: compose-logs
           path: compose-logs.txt
@@ -95,11 +95,11 @@ jobs:
     # Se activa automáticamente cuando la suite exista en el repo.
     if: ${{ needs.env-smoke.outputs.has_e2e == 'true' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: pnpm # caché del store de pnpm entre corridas
@@ -108,7 +108,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Caché de browsers de Playwright
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -127,7 +127,7 @@ jobs:
 
       - name: Publicar reporte HTML + traces
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: |
