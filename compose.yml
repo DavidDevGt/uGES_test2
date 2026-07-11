@@ -1,0 +1,54 @@
+services:
+  mariadb:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-moodle}
+      MARIADB_USER: ${DB_USER:-moodle}
+      MARIADB_PASSWORD: ${DB_PASS:-moodlepass}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASS:-rootpass}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "healthcheck.sh", "--connect", "--innodb_initialized" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  moodle:
+    image: erseco/alpine-moodle:v4.5.12
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    ports:
+      - "${MOODLE_PORT:-8080}:8080"
+    environment:
+      SITE_URL: ${SITE_URL:-http://localhost:8080}
+      MOODLE_SITENAME: ${MOODLE_SITENAME:-QA-EXAMS Lab}
+      MOODLE_USERNAME: ${MOODLE_ADMIN_USER:-admin}
+      MOODLE_PASSWORD: ${MOODLE_ADMIN_PASS:-Admin123!}
+      MOODLE_EMAIL: ${MOODLE_ADMIN_EMAIL:-admin@example.com}
+      MOODLE_LANGUAGE: ${MOODLE_LANGUAGE:-en}
+      DB_TYPE: mariadb
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-moodle}
+      DB_USER: ${DB_USER:-moodle}
+      DB_PASS: ${DB_PASS:-moodlepass}
+      DB_PREFIX: mdl_
+    volumes:
+      - moodledata:/var/www/moodledata
+      - moodlehtml:/var/www/html
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8080/login/index.php" ]
+      interval: 15s
+      timeout: 5s
+      retries: 30
+      start_period: 180s
+
+volumes:
+  db_data:
+  moodledata:
+  moodlehtml:

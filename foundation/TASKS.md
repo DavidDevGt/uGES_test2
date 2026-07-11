@@ -1,9 +1,10 @@
 # Tareas: Desarrollo AI-first y QA Automatizado (Moodle)
 
 ## Entorno e Infraestructura
-- `[/]` Crear `docker-compose.yml` con Moodle y MariaDB
-- `[ ]` Crear `scripts/seed.sh` (categoría, curso, usuarios, banco de preguntas, exámenes)
-- `[ ]` Crear script de limpieza `scripts/reset-attempts.sh`
+- `[x]` Crear `compose.yml` + `.env.example` con Moodle (`erseco/alpine-moodle` @ 4.5 LTS) y MariaDB
+- `[ ]` Crear `scripts/seed.sh` (moosh: categoría, curso, usuarios, banco desde `seed-questions.xml`, exámenes)
+- `[ ]` Crear `scripts/seed-quiz-questions.php` (asignar preguntas fijas + aleatoria al quiz)
+- `[ ]` Crear script de limpieza `scripts/reset-attempts.sh` (moosh `quiz-delete-attempts`)
 
 ## Cambio 2: `local_focusguard`
 - `[ ]` Estructura básica del plugin (`version.php`, `lang/en/...`)

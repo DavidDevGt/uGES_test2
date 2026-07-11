@@ -21,7 +21,7 @@
 **Decisión:** Playwright. Behat queda documentado como alternativa evaluada — mencionable en la defensa como conocimiento del ecosistema Moodle.
 
 ### D2 — Capa de implementación de los cambios: **plugins `local_` + hooks estándar** (sin tocar core)
-- Cambio 2: plugin `local_focusguard` (JS inyectado vía hook `before_footer` condicionado a la página del intento + web service AJAX + tabla propia + inyección en la vista de revisión de intentos).
+- Cambio 2: plugin `local_focusguard` (JS inyectado vía Hooks API — `db/hooks.php` + callback sobre `core\hook\output\before_footer_html_generation` — condicionado a la página del intento + web service AJAX + tabla propia + inyección en la vista de revisión de intentos). *Nota verificada: los callbacks legacy `*_before_footer` en `lib.php` emiten deprecation warnings desde Moodle 4.4 — no usarlos.*
 - Cambio 4: plugin `local_graceguard` (event observer sobre `\mod_quiz\event\attempt_submitted` + settings de admin + regrade del intento + notificación visible al estudiante).
 - *Racional:* los plugins locales sobreviven upgrades de Moodle, se instalan/desinstalan limpio, y son "la capa razonable" que el enunciado evalúa. Alternativas descartadas: modificar `mod_quiz` (prohibido: core), tema custom (frágil), fork (insostenible).
 
@@ -30,14 +30,28 @@
 
 ### D4 — Datos de prueba con timers cortos
 - El seeding crea DOS exámenes: `quiz-general` (sin límite, para flujos funcionales) y `quiz-timed` (límite 2 min + gracia 1 min + penalización activa, para flujos 7 y Cambio 4). Los tests de timer son los únicos lentos; el resto no espera relojes.
+- *Nota:* el admin setting `quiz | graceperiodmin` impone un mínimo de 60 s de gracia — el `quiz-timed` queda exactamente en el mínimo; si el envío manual dentro de la gracia resulta demasiado justo en los tests, subirla a 2 min.
+
+### D5 — Versión de Moodle e imagen: **Moodle 4.5 LTS en `erseco/alpine-moodle`** (vs. 5.x / Bitnami / moodlehq)
+
+| Criterio | Moodle 5.x (`latest`) | Bitnami | moodlehq/moodle-php-apache | **erseco/alpine-moodle @ v4.5.x** |
+|---|---|---|---|---|
+| Disponibilidad 2026 | OK | **Retirada del catálogo gratuito (Broadcom, 2025); solo `bitnamilegacy` congelada** | OK | **OK, mantenida activamente** |
+| Contiene Moodle + auto-install | — | Sí (congelado) | **No — solo PHP+Apache** | **Sí, 100% por env vars** |
+| Hooks API de salida (Cambio 2) | Sí | Según tag | Según código montado | **Sí (desde 4.4)** |
+| Estabilidad estructural | 5.1 movió el webroot a `public/` | — | — | **Estructura clásica, LTS hasta 2027** |
+| Tooling de seeding | — | — | — | **moosh embebido en la imagen** |
+
+**Decisión:** `erseco/alpine-moodle` pineada al último tag `v4.5.x` (LTS). Cumple "3 comandos reales" (auto-instala en el primer arranque) y abarata D3 (moosh dentro del contenedor). Fallback documentado: `bitnamilegacy/moodle` pineada (funcional pero sin actualizaciones).
 
 ---
 
 ## 1. Entorno reproducible
 
-### 1.1 `docker-compose.yml`
-- Servicios: `mariadb` + `moodle` (imagen Bitnami `bitnami/moodle:latest` pineada a tag concreto), volúmenes nombrados, healthchecks en ambos.
+### 1.1 `compose.yml`
+- Servicios: `mariadb` + `moodle` (imagen `erseco/alpine-moodle` pineada a tag de Moodle 4.5 LTS — ver D5; auto-instala en el primer arranque vía variables de entorno e incluye moosh), volúmenes nombrados, healthchecks en ambos.
 - Variables en `.env.example` (usuario admin, passwords de prueba, puerto). Nada hardcodeado en los tests: leen `.env`.
+- `SITE_URL` debe coincidir con el puerto expuesto (`http://localhost:8080`): la instalación lo fija como `$CFG->wwwroot` y no se puede cambiar solo remapeando el puerto.
 
 ### 1.2 `scripts/seed.sh` — criterios de aceptación
 - [ ] Idempotente: correrlo dos veces no duplica ni falla.
@@ -46,6 +60,8 @@
 - [ ] Exámenes: `quiz-general` (preguntas fijas + 1 aleatoria de la categoría) y `quiz-timed` (límite 2 min, gracia 1 min, 2 intentos permitidos, método de calificación: nota más alta).
 - [ ] Instala y habilita los plugins `local_focusguard` y `local_graceguard` (via `php admin/cli/upgrade.php`).
 - [ ] Termina imprimiendo un resumen verificable (ids creados) y exit code correcto.
+
+**Mapeo a comandos moosh (embebido en la imagen — se ejecuta con `docker compose exec moodle moosh ...`):** categoría/curso → `category-create` + `course-create` · usuarios/matrícula → `user-create` + `course-enrol` · categoría de preguntas → `questioncategory-create --reuse` (da la idempotencia gratis) · banco → `questionbank-import` con un único archivo Moodle XML versionado (`scripts/seed-questions.xml`, las 6 preguntas `SEED-*`) · quizzes → `activity-add quiz` + `activity-config-set` (timelimit, graceperiod, overduehandling, attempts, grademethod) · limpieza (`reset-attempts.sh`) → `quiz-delete-attempts`. **Huecos que moosh no cubre:** asignar preguntas del banco al quiz y la pregunta aleatoria → mini-script PHP CLI (`scripts/seed-quiz-questions.php`, ~20 líneas contra la API de `mod_quiz`) ejecutado dentro del contenedor.
 
 ---
 
@@ -58,10 +74,10 @@
 4. **No afecta la nota.** Es señal informativa.
 
 ### 2.2 Diseño técnico
-- **Captura (JS, AMD module):** listeners `visibilitychange` (document.hidden) y `window.blur`, con **debounce de 1s** para no contar doble el mismo gesto (blur+visibilitychange suelen dispararse juntos). Solo activo en páginas `mod/quiz/attempt.php`. Envío por `core/ajax` al web service propio; buffer con reintento simple si la llamada falla (no bloquea al estudiante jamás).
+- **Captura (JS, AMD module):** listeners `visibilitychange` (document.hidden) y `window.blur`, con **debounce de 1s** para no contar doble el mismo gesto (blur+visibilitychange suelen dispararse juntos). Solo activo en páginas `mod/quiz/attempt.php` (el callback del hook comprueba `$PAGE->pagetype` antes de `js_call_amd()`). Envío por `core/ajax` al web service propio; buffer con reintento simple si la llamada falla (no bloquea al estudiante jamás).
 - **Persistencia:** tabla `local_focusguard_counts` → `id, attemptid (FK, unique), userid, quizid, count, timemodified`. Upsert por attemptid.
 - **Web service:** función externa `local_focusguard_report_blur(attemptid)` — valida que el intento pertenece al usuario de la sesión y está `inprogress`; incrementa y devuelve el conteo. Capability: estudiante autenticado dueño del intento.
-- **Vista profesor:** inyección en el reporte de intentos (hook de salida o columna extra vía callback del reporte) mostrando `Focus: N` con clase CSS `focusguard-alert` cuando `N > 3`. Umbral 3 hardcodeado según enunciado (nota de diseño: parametrizable — candidato natural a quinto cambio).
+- **Vista profesor:** el mismo hook de footer, en la página del reporte de intentos, embebe los conteos como JSON en un data-attribute (una sola query en servidor) y un módulo AMD decora las filas mostrando `Focus: N` con clase CSS `focusguard-alert` cuando `N > 3` — sin segunda llamada AJAX (menos latencia y menos flakiness en los tests). Umbral 3 hardcodeado según enunciado (nota de diseño: parametrizable — candidato natural a quinto cambio). *Alternativa evaluada:* subplugin oficial de reporte `quiz_focusguard` (tipo `quiz_`, helpers de `attemptsreport.php` — columna nativa ordenable, cero fragilidad DOM) — descartado por ~3x más boilerplate frente al presupuesto de tiempo; documentado para la defensa.
 
 ### 2.3 Criterios de aceptación (los tests verifican esto)
 - [ ] Cambiar de pestaña 2 veces durante un intento → la vista del profesor muestra conteo 2, sin marca visual.
@@ -83,8 +99,8 @@
 5. Intentos enviados dentro del tiempo normal: intactos.
 
 ### 3.2 Diseño técnico
-- **Detección:** event observer sobre `\mod_quiz\event\attempt_submitted`. Un intento cayó en gracia si `timefinish > timestart + timelimit` (con tolerancia de 1–2 s por latencia) y el quiz tiene `graceperiod` activo. *Verificar contra el comportamiento real de Moodle en el entorno — los campos exactos del attempt son candidato #1 a "discrepancia documentación vs. realidad" (bonus del enunciado): documentar lo que se encuentre.*
-- **Aplicación:** recalcular `sumgrades` del intento aplicando el factor `(1 - penalty/100)`, persistir, y disparar el recálculo de la nota del quiz en gradebook (API de `quiz_save_best_grade`/regrade según lo que el entorno confirme). Registrar en tabla propia `local_graceguard_log` → `attemptid, original_grade, penalty_pct, final_grade, timeapplied` (auditable, y es la fuente del mensaje al estudiante).
+- **Detección:** event observer sobre `\mod_quiz\event\attempt_submitted`. Moodle almacena el estado explícitamente en `quiz_attempts.state` (máquina: `inprogress → overdue → finished`; durante la gracia el intento está en `overdue` y el estudiante solo puede ir al resumen y enviar). Un intento cayó en gracia si el quiz tiene `overduehandling = graceperiod` Y se cumple la señal temporal `timefinish > timestart + timelimit` (con tolerancia de 1–2 s por latencia); al recibir el evento, leer el registro del intento y contrastar ambas señales. *Verificar contra el comportamiento real de Moodle en el entorno — los campos exactos del attempt son candidato #1 a "discrepancia documentación vs. realidad" (bonus del enunciado): documentar lo que se encuentre.*
+- **Aplicación:** recalcular `sumgrades` del intento aplicando el factor `(1 - penalty/100)`, persistir, y disparar el recálculo de la nota del quiz en gradebook con la API moderna (4.2+): `quiz_settings::create($quizid)->get_grade_calculator()->recompute_final_grade($userid)` — `quiz_save_best_grade` es el nombre legacy pre-4.2 (verificar firma exacta en el entorno; anotar discrepancias como hallazgo). Registrar en tabla propia `local_graceguard_log` → `attemptid, original_grade, penalty_pct, final_grade, timeapplied` (auditable, y es la fuente del mensaje al estudiante).
 - **Settings de admin:** `local_graceguard/penaltypct` (int 0–100, default 10) + toggle de activación.
 - **Mensaje al estudiante:** en la página de revisión del intento, bloque visible: "Tu intento se envió en el período de gracia: nota 8.5 → penalización 10% → nota final 7.65".
 - **Idempotencia:** el observer no aplica dos veces sobre el mismo attemptid (check contra el log).
@@ -104,13 +120,15 @@
 ### 4.1 Estructura del repo
 ```
 /
-├── docker-compose.yml · .env.example
+├── compose.yml · .env.example
 ├── plugins/
 │   ├── local_focusguard/            # instalables por seed.sh
 │   └── local_graceguard/
 ├── scripts/
-│   ├── seed.sh                      # datos base idempotentes
-│   └── reset-attempts.sh            # limpieza entre corridas (borra intentos, no la config)
+│   ├── seed.sh                      # datos base idempotentes (moosh)
+│   ├── seed-questions.xml           # banco de preguntas SEED-* (Moodle XML, 6 tipos)
+│   ├── seed-quiz-questions.php      # asigna preguntas fijas + aleatoria al quiz (API mod_quiz)
+│   └── reset-attempts.sh            # limpieza entre corridas (moosh quiz-delete-attempts; borra intentos, no la config)
 ├── e2e/
 │   ├── playwright.config.ts         # projects: setup → teacher-flows → student-flows → grading-flows → changes
 │   ├── global-setup.ts              # espera healthcheck, corre seed, guarda storageState por rol

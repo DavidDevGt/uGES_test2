@@ -82,7 +82,7 @@
 
 | Riesgo | Mitigación |
 |---|---|
-| Entorno Docker consume el fin de semana | Se ataca el viernes en la noche; imagen Bitnami (probada); fallback: imagen oficial moodlehq/moodle-php-apache |
+| Entorno Docker consume el fin de semana | Imagen `erseco/alpine-moodle` pineada a Moodle 4.5 LTS (auto-instala por env vars, moosh embebido); fallback: `bitnamilegacy/moodle` pineada (congelada). *Verificado 2026: `bitnami/moodle` fue retirado del catálogo gratuito de Docker Hub; `moodlehq/moodle-php-apache` no incluye Moodle* |
 | Timers reales hacen tests lentos/flaky | Exámenes de prueba con límite de 1–2 min creados por seeding; `test.slow()` solo donde el timer es el sujeto del test; el resto de flujos no espera timers |
 | Flakiness en UI de Moodle (modals, ajax) | Web-first assertions de Playwright, sin sleeps fijos; retry=1 en CI con trace-on-retry para diagnosticar |
 | Selectores frágiles de Moodle | Page Objects con selectores por rol/label (accesibilidad) antes que clases CSS generadas |

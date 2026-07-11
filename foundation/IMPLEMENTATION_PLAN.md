@@ -2,15 +2,13 @@
 
 Este documento detalla la arquitectura y el plan de acción técnico tras investigar las APIs de Moodle y las restricciones definidas en `SPECS.md` (específicamente la regla de "No tocar el core").
 
-## User Review Required
+## Decisiones resueltas (revisión 2026-07-11, tras investigación verificada)
 
-> [!IMPORTANT]
-> **Extensión de la vista del profesor (Cambio 2)**: Moodle NO provee un "hook" oficial en PHP para añadir columnas de forma limpia al reporte nativo de intentos de cuestionario (`quiz_overview_report`) sin modificar el core. 
-> **Propuesta:** Para cumplir con la restricción de "No tocar el core", inyectaremos JavaScript (vía AMD module) en la página del reporte del profesor. Este script identificará las filas de los intentos, consultará nuestro Web Service (o embeberá los datos si los inyectamos en un data-attribute global) y agregará el badge rojo de "Pérdidas de foco: N" modificando el DOM de forma segura. ¿Estás de acuerdo con este enfoque frontend para la extensión del reporte?
+> [!NOTE]
+> **Extensión de la vista del profesor (Cambio 2) — APROBADO el enfoque frontend, con ajuste.** Los datos NO se consultan por una segunda llamada AJAX: el callback PHP del hook de footer los embebe como JSON en un data-attribute (una sola query en servidor) y el módulo AMD solo decora el DOM con el badge. Menos latencia y menos flakiness en los tests. *Alternativa evaluada y descartada por costo (~3x boilerplate): subplugin oficial de reporte `quiz_focusguard` (tipo `quiz_`, helpers `attemptsreport.php`) — se documenta en la matriz de decisión para la defensa.*
 
-> [!WARNING]
-> **Cálculo de penalización (Cambio 4)**: Capturar el evento `\mod_quiz\event\attempt_submitted` es el enfoque correcto. Sin embargo, recalcular la calificación en el `gradebook` directamente puede ser frágil.
-> **Propuesta:** La lógica modificará el `sumgrades` del intento y luego llamará a la API oficial de calificación del módulo (`quiz_save_best_grade` o equivalente) para asegurar que Moodle propague el cambio al libro de calificaciones correctamente. 
+> [!NOTE]
+> **Cálculo de penalización (Cambio 4) — APROBADO.** Modificar `sumgrades` del intento y propagar con la API moderna de mod_quiz (4.2+): `quiz_settings::create($quizid)->get_grade_calculator()->recompute_final_grade($userid)`. `quiz_save_best_grade` es el nombre legacy pre-4.2. Verificar la firma exacta en el entorno y registrar cualquier discrepancia como hallazgo (bonus).
 
 ## Proposed Changes
 
@@ -18,8 +16,8 @@ A continuación se detalla la estructura y componentes a generar para la soluci�
 
 ### Entorno y Datos
 
-- **`docker-compose.yml`**: Configuración de los servicios MariaDB y Moodle (imagen de Bitnami pineada a un tag específico para reproducibilidad).
-- **`scripts/seed.sh`**: Script bash idempotente que utilizará `moosh` (Moodle Shell) o Moodle CLI para poblar la base de datos con las categorías, cursos, usuarios, banco de preguntas (los 6 tipos) y los dos cuestionarios configurados (`quiz-general` y `quiz-timed`).
+- **`compose.yml`**: Configuración de los servicios MariaDB y Moodle. Imagen `erseco/alpine-moodle` pineada a tag de Moodle 4.5 LTS (auto-instala vía env vars, moosh embebido). *`bitnami/moodle` fue retirado del catálogo gratuito de Docker Hub en 2025 (solo queda `bitnamilegacy`, congelada — es el fallback); `moodlehq/moodle-php-apache` no incluye Moodle.*
+- **`scripts/seed.sh`**: Script bash idempotente que utilizará `moosh` (embebido en la imagen: `docker compose exec moodle moosh ...`) para poblar categorías, cursos, usuarios, banco de preguntas (los 6 tipos, importados desde `scripts/seed-questions.xml` en formato Moodle XML) y los dos cuestionarios (`quiz-general` y `quiz-timed`). Los huecos que moosh no cubre (asignar preguntas al quiz + pregunta aleatoria) los cierra `scripts/seed-quiz-questions.php` (mini-script CLI contra la API de `mod_quiz`, ejecutado dentro del contenedor).
 
 ---
 
@@ -39,8 +37,8 @@ Definirá el Web Service `local_focusguard_report_blur` para recibir las notific
 #### [NEW] `plugins/local_focusguard/amd/src/main.js` (y su versión build)
 Script inyectado en el lado del cliente con listeners para `visibilitychange` y `blur` (usando debounce). Enviará la petición al Web Service utilizando el módulo `core/ajax` de Moodle.
 
-#### [NEW] `plugins/local_focusguard/lib.php`
-Usará el callback `local_focusguard_extend_navigation` (o similar) para inyectar condicionalmente el script `main.js` mediante `$PAGE->requires->js_call_amd()` solo en la página `mod/quiz/attempt.php`. Además, inyectará el script de modificación del reporte en la vista del profesor.
+#### [NEW] `plugins/local_focusguard/db/hooks.php` y `classes/hook_callbacks.php`
+Registro y callback del hook `core\hook\output\before_footer_html_generation` (Hooks API, disponible desde Moodle 4.4). El callback comprueba `$PAGE->pagetype`: en la página del intento (`mod-quiz-attempt`) inyecta `main.js` vía `js_call_amd()`; en la vista del reporte de intentos del profesor embebe los conteos como JSON en un data-attribute e inyecta el módulo AMD que decora las filas con el badge. **No usar callbacks legacy de `lib.php`** (`*_before_footer`, `*_extend_navigation`): emiten deprecation warnings desde 4.4.
 
 ---
 
@@ -58,10 +56,10 @@ Creará la tabla `local_graceguard_log` para registrar auditoría (`attemptid`, 
 Creará la página de configuración de administrador en Site Administration para habilitar la penalización y configurar el porcentaje (e.g., 10%).
 
 #### [NEW] `plugins/local_graceguard/db/events.php` y `classes/observer.php`
-Registrará y manejará el evento `\mod_quiz\event\attempt_submitted`. El observer validará si el intento se realizó en el período de gracia y aplicará la reducción en la nota, llamando a la API de actualización del gradebook.
+Registrará y manejará el evento `\mod_quiz\event\attempt_submitted`. El observer validará si el intento cayó en el período de gracia — doble señal: `overduehandling = graceperiod` en el quiz + `timefinish > timestart + timelimit` con tolerancia (el estado se almacena explícitamente en `quiz_attempts.state`: `inprogress → overdue → finished`) — y aplicará la reducción sobre `sumgrades`, propagando al gradebook con `\mod_quiz\grade_calculator::recompute_final_grade()`.
 
-#### [NEW] `plugins/local_graceguard/lib.php`
-Inyectará HTML o un script en la página de revisión del intento (`mod/quiz/review.php`) para mostrar el desglose de la nota original, penalización y nota final al estudiante (leyendo de `local_graceguard_log`).
+#### [NEW] `plugins/local_graceguard/db/hooks.php` y `classes/hook_callbacks.php`
+Mismo mecanismo de Hooks API que focusguard: callback sobre `before_footer_html_generation` que, en la página de revisión del intento (`mod-quiz-review`), muestra el desglose de la nota original, penalización y nota final al estudiante (leyendo de `local_graceguard_log`).
 
 ---
 
