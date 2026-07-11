@@ -17,7 +17,7 @@ A continuación se detalla la estructura y componentes a generar para la soluci�
 ### Entorno y Datos
 
 - **`compose.yml`**: Configuración de los servicios MariaDB y Moodle. Imagen `erseco/alpine-moodle` pineada a tag de Moodle 4.5 LTS (auto-instala vía env vars, moosh embebido). *`bitnami/moodle` fue retirado del catálogo gratuito de Docker Hub en 2025 (solo queda `bitnamilegacy`, congelada — es el fallback); `moodlehq/moodle-php-apache` no incluye Moodle.*
-- **`scripts/seed.sh`**: Script bash idempotente que utilizará `moosh` (embebido en la imagen: `docker compose exec moodle moosh ...`) para poblar categorías, cursos, usuarios, banco de preguntas (los 6 tipos, importados desde `scripts/seed-questions.xml` en formato Moodle XML) y los dos cuestionarios (`quiz-general` y `quiz-timed`). Los huecos que moosh no cubre (asignar preguntas al quiz + pregunta aleatoria) los cierra `scripts/seed-quiz-questions.php` (mini-script CLI contra la API de `mod_quiz`, ejecutado dentro del contenedor).
+- **`scripts/seed.sh`**: Script bash idempotente que utilizará `moosh` (embebido en la imagen: `docker compose exec moodle moosh ...`) para poblar categorías, cursos, usuarios, banco de preguntas (los 6 tipos, importados desde `scripts/seed-questions.xml` en formato Moodle XML) y los dos cuestionarios (`quiz-general` y `quiz-timed`). Los huecos que moosh no cubre (matriculaciones — su `course-enrol` es incompatible con 4.5 —, asignar preguntas al quiz y la pregunta aleatoria) los cierra `scripts/seed-course-setup.php` (script CLI contra las APIs `enrol` y `mod_quiz`, ejecutado dentro del contenedor).
 
 ---
 

@@ -61,7 +61,7 @@
 - [ ] Instala y habilita los plugins `local_focusguard` y `local_graceguard` (via `php admin/cli/upgrade.php`).
 - [ ] Termina imprimiendo un resumen verificable (ids creados) y exit code correcto.
 
-**Mapeo a comandos moosh (embebido en la imagen — se ejecuta con `docker compose exec moodle moosh ...`):** categoría/curso → `category-create` + `course-create` · usuarios/matrícula → `user-create` + `course-enrol` · categoría de preguntas → `questioncategory-create --reuse` (da la idempotencia gratis) · banco → `questionbank-import` con un único archivo Moodle XML versionado (`scripts/seed-questions.xml`, las 6 preguntas `SEED-*`) · quizzes → `activity-add quiz` + `activity-config-set` (timelimit, graceperiod, overduehandling, attempts, grademethod) · limpieza (`reset-attempts.sh`) → `quiz-delete-attempts`. **Huecos que moosh no cubre:** asignar preguntas del banco al quiz y la pregunta aleatoria → mini-script PHP CLI (`scripts/seed-quiz-questions.php`, ~20 líneas contra la API de `mod_quiz`) ejecutado dentro del contenedor.
+**Mapeo a comandos moosh (embebido en la imagen — se ejecuta con `docker compose exec moodle moosh ...`):** categoría/curso → `category-create` + `course-create` · usuarios/matrícula → `user-create` + `course-enrol` · categoría de preguntas → `questioncategory-create --reuse` (da la idempotencia gratis) · banco → `questionbank-import` con un único archivo Moodle XML versionado (`scripts/seed-questions.xml`, las 6 preguntas `SEED-*`) · quizzes → `activity-add quiz` + `activity-config-set` (timelimit, graceperiod, overduehandling, attempts, grademethod) · limpieza (`reset-attempts.sh`) → `quiz-delete-attempts`. **Huecos que moosh no cubre:** matriculaciones (su `course-enrol` es incompatible con 4.5 — pierde `$CFG->dirroot`), asignar preguntas del banco al quiz y la pregunta aleatoria → script PHP CLI (`scripts/seed-course-setup.php`, contra las APIs `enrol` y `mod_quiz`) ejecutado dentro del contenedor.
 
 ---
 
@@ -127,7 +127,7 @@
 ├── scripts/
 │   ├── seed.sh                      # datos base idempotentes (moosh)
 │   ├── seed-questions.xml           # banco de preguntas SEED-* (Moodle XML, 6 tipos)
-│   ├── seed-quiz-questions.php      # asigna preguntas fijas + aleatoria al quiz (API mod_quiz)
+│   ├── seed-course-setup.php        # matriculaciones (API enrol) + preguntas fijas y aleatoria al quiz (API mod_quiz)
 │   └── reset-attempts.sh            # limpieza entre corridas (moosh quiz-delete-attempts; borra intentos, no la config)
 ├── e2e/
 │   ├── playwright.config.ts         # projects: setup → teacher-flows → student-flows → grading-flows → changes

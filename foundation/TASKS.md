@@ -2,9 +2,9 @@
 
 ## Entorno e Infraestructura
 - `[x]` Crear `compose.yml` + `.env.example` con Moodle (`erseco/alpine-moodle` @ 4.5 LTS) y MariaDB
-- `[ ]` Crear `scripts/seed.sh` (moosh: categoría, curso, usuarios, banco desde `seed-questions.xml`, exámenes)
-- `[ ]` Crear `scripts/seed-quiz-questions.php` (asignar preguntas fijas + aleatoria al quiz)
-- `[ ]` Crear script de limpieza `scripts/reset-attempts.sh` (moosh `quiz-delete-attempts`)
+- `[x]` Crear `scripts/seed.sh` (moosh: categoría, curso, usuarios, banco desde `seed-questions.xml`, exámenes) — verificado idempotente (3 corridas)
+- `[x]` Crear `scripts/seed-course-setup.php` (matriculaciones vía API + preguntas fijas + aleatoria al quiz)
+- `[x]` Crear script de limpieza `scripts/reset-attempts.sh` (moosh `quiz-delete-attempts`) — probado
 
 ## Cambio 2: `local_focusguard`
 - `[ ]` Estructura básica del plugin (`version.php`, `lang/en/...`)

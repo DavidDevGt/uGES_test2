@@ -2,6 +2,9 @@ services:
   mariadb:
     image: mariadb:11.4
     restart: unless-stopped
+    # Moodle exige UTF-8 como charset por defecto de la BD (hallazgo 2026-07-11:
+    # sin esto el instalador falla con "!! unicode !!").
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
       MARIADB_DATABASE: ${DB_NAME:-moodle}
       MARIADB_USER: ${DB_USER:-moodle}
@@ -26,7 +29,7 @@ services:
       - "${MOODLE_PORT:-8080}:8080"
     environment:
       SITE_URL: ${SITE_URL:-http://localhost:8080}
-      MOODLE_SITENAME: ${MOODLE_SITENAME:-QA-EXAMS Lab}
+      MOODLE_SITENAME: ${MOODLE_SITENAME:-QA-EXAMS-Lab}
       MOODLE_USERNAME: ${MOODLE_ADMIN_USER:-admin}
       MOODLE_PASSWORD: ${MOODLE_ADMIN_PASS:-Admin123!}
       MOODLE_EMAIL: ${MOODLE_ADMIN_EMAIL:-admin@example.com}
@@ -42,7 +45,9 @@ services:
       - moodledata:/var/www/moodledata
       - moodlehtml:/var/www/html
     healthcheck:
-      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:8080/login/index.php" ]
+      # Hallazgos 2026-07-11: (1) "localhost" resuelve a ::1 en Alpine y nginx solo escucha IPv4 → 127.0.0.1 explícito.
+      # (2) /login/index.php responde 303 hacia $CFG->wwwroot (localhost) → curl sin -L: no sigue el redirect y -f acepta 3xx.
+      test: [ "CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8080/login/index.php" ]
       interval: 15s
       timeout: 5s
       retries: 30
