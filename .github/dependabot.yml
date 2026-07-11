@@ -1,0 +1,22 @@
+# Vigilancia de dependencias: imágenes pineadas, actions y (cuando exista lockfile) npm.
+version: 2
+updates:
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    # Solo parches/minors de las imágenes pineadas (mariadb:11.4, erseco v4.5.x);
+    # un major de Moodle es decisión de arquitectura (D5), no un bump automático.
+    ignore:
+      - dependency-name: "erseco/alpine-moodle"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
