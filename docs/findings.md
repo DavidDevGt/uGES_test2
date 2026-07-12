@@ -55,6 +55,10 @@
 - **Real:** con las 6 SEED fijas en quiz-general, el slot aleatorio tenía pool CERO y el intento no podía iniciarse: "There are not enough questions in category 1 to create the question Random question (7)". No documentado en la spec del seeding.
 - **Resolución:** pool de reserva `seed-questions-extra.xml` (SEED-MC-02/SEED-TF-02) que nunca van fijas; verify-env pasa de 6 a 8 preguntas.
 
+### F14b — Regresión fresh-vs-incremental cazada por el CI: las preguntas de reserva se fijaban al quiz
+- **Real:** `seed-course-setup.php` tomaba TODAS las `SEED-%` como fijas; tras F14 (8 preguntas) una instalación FRESCA creaba 9 slots (8 fijas + aleatoria) y re-vaciaba el pool. El entorno local incremental no lo veía (la idempotencia saltaba los slots ya creados) — **lo cazó el fail-fast de verify-env en el CI**, exactamente el escenario para el que se cableó.
+- **Resolución:** lista explícita de las 6 fijas base en el PHP; las de reserva existen solo como pool. Validado con `down -v` + verify-env 17/17 + suite 11/11 contra instalación virgen.
+
 ### F15 — El `quiz-delete-attempts` de moosh embebido no soporta filtro de usuario
 - **Real:** la documentación de moosh lista `[-u userid]`; el binario embebido responde "Invalid option: -u". Sin filtro por usuario, un reset borra los intentos en vuelo de otros specs paralelos.
 - **Resolución:** `reset-attempts.sh` reescrito sobre la API oficial `quiz_delete_attempt()` (limpia question usages y recalcula grades), con filtro (quiz, usuario) y sin `|| true` que trague errores.

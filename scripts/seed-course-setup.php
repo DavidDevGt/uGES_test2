@@ -152,8 +152,21 @@ function seed_quiz(string $quizname, array $questions, ?stdClass $randomcategory
     mtrace("    $quizname: sumgrades={$quiz->sumgrades}, nota máxima alineada");
 }
 
+// Fijas = SOLO las 6 base, por lista explícita. Las 2 de reserva (SEED-MC-02/TF-02)
+// existen únicamente como pool del slot aleatorio (F14): si se fijaran también,
+// el pool volvería a quedar vacío y el quiz tendría 9 slots (regresión cazada por
+// el CI en instalación fresca — el entorno incremental local no la veía).
+$fixednames = ['SEED-ESSAY-01', 'SEED-MATCH-01', 'SEED-MC-01', 'SEED-NUM-01', 'SEED-SA-01', 'SEED-TF-01'];
+$fixed = [];
+foreach ($fixednames as $fname) {
+    if (!isset($byname[$fname])) {
+        cli_error("Falta la pregunta base $fname en el banco");
+    }
+    $fixed[] = $byname[$fname];
+}
+
 mtrace('==> quiz-general (6 fijas + 1 aleatoria)');
-seed_quiz('quiz-general', array_values($byname), $seedcategory ?: null, $course);
+seed_quiz('quiz-general', $fixed, $seedcategory ?: null, $course);
 
 mtrace('==> quiz-timed (MC + TF, rápidas de responder)');
 seed_quiz('quiz-timed', [$byname['SEED-MC-01'], $byname['SEED-TF-01']], null, $course);
