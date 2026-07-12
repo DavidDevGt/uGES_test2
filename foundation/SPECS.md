@@ -29,8 +29,8 @@
 - Alternativas: clicks manuales (prohibido por criterio propio: eso es el "humo"), backup/restore de curso (opaco, no versionable), web services (más código para el mismo resultado). moosh/CLI es explícito, versionable y legible en el repo.
 
 ### D4 — Datos de prueba con timers cortos
-- El seeding crea DOS exámenes: `quiz-general` (sin límite, para flujos funcionales) y `quiz-timed` (límite 2 min + gracia 1 min + penalización activa, para flujos 7 y Cambio 4). Los tests de timer son los únicos lentos; el resto no espera relojes.
-- *Nota:* el admin setting `quiz | graceperiodmin` impone un mínimo de 60 s de gracia — el `quiz-timed` queda exactamente en el mínimo; si el envío manual dentro de la gracia resulta demasiado justo en los tests, subirla a 2 min.
+- El seeding crea DOS exámenes: `quiz-general` (sin límite, para flujos funcionales) y `quiz-timed` (límite 2 min + gracia 2 min + penalización activa, para flujos 7 y Cambio 4). Los tests de timer son los únicos lentos; el resto no espera relojes.
+- *Nota:* el admin setting `quiz | graceperiodmin` impone un mínimo de 60 s de gracia. Se usa 120 s (no el mínimo): la ventana de envío dentro de la gracia debe ser holgada en runners de CI cargados (auditoría C5 en `docs/qa-strategy-audit.md`).
 
 ### D5 — Versión de Moodle e imagen: **Moodle 4.5 LTS en `erseco/alpine-moodle`** (vs. 5.x / Bitnami / moodlehq)
 
@@ -57,7 +57,7 @@
 - [ ] Idempotente: correrlo dos veces no duplica ni falla.
 - [ ] Crea: categoría + curso `QA-EXAMS-101`; usuarios `admin` (existente), `teacher1`, `student1`, `student2` con roles correctos; matriculaciones.
 - [ ] Banco de preguntas: 1 de cada tipo requerido — opción múltiple, V/F, respuesta corta, numérica, emparejamiento, ensayo (6 preguntas mínimo, nombradas con prefijo `SEED-`).
-- [ ] Exámenes: `quiz-general` (preguntas fijas + 1 aleatoria de la categoría) y `quiz-timed` (límite 2 min, gracia 1 min, 2 intentos permitidos, método de calificación: nota más alta).
+- [ ] Exámenes: `quiz-general` (preguntas fijas + 1 aleatoria de la categoría) y `quiz-timed` (límite 2 min, gracia 2 min, 2 intentos permitidos, método de calificación: nota más alta).
 - [ ] Instala y habilita los plugins `local_focusguard` y `local_graceguard` (via `php admin/cli/upgrade.php`).
 - [ ] Termina imprimiendo un resumen verificable (ids creados) y exit code correcto.
 

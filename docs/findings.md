@@ -49,6 +49,31 @@
 - **Real:** el id clásico del menú de usuario cambió; en 4.5 el toggle es `a#user-menu-toggle` (verificado inspeccionando el DOM vivo).
 - **Resolución:** selector actualizado en `LoginPage.ts`, encapsulado en el Page Object con nota.
 
+## 2026-07-12 — Escritura del spec 04 (flujos 6, 8, 9)
+
+### F14 — La pregunta aleatoria excluye las preguntas ya usadas en slots fijos del mismo quiz
+- **Real:** con las 6 SEED fijas en quiz-general, el slot aleatorio tenía pool CERO y el intento no podía iniciarse: "There are not enough questions in category 1 to create the question Random question (7)". No documentado en la spec del seeding.
+- **Resolución:** pool de reserva `seed-questions-extra.xml` (SEED-MC-02/SEED-TF-02) que nunca van fijas; verify-env pasa de 6 a 8 preguntas.
+
+### F15 — El `quiz-delete-attempts` de moosh embebido no soporta filtro de usuario
+- **Real:** la documentación de moosh lista `[-u userid]`; el binario embebido responde "Invalid option: -u". Sin filtro por usuario, un reset borra los intentos en vuelo de otros specs paralelos.
+- **Resolución:** `reset-attempts.sh` reescrito sobre la API oficial `quiz_delete_attempt()` (limpia question usages y recalcula grades), con filtro (quiz, usuario) y sin `|| true` que trague errores.
+
+### F16 — Las respuestas del intento solo se persisten al navegar (o autosave de 60s)
+- **Real:** marcar un radio y cerrar la página sin navegar pierde la respuesta (el slot queda `gaveup` — verificado en `question_attempt_steps`). El submit del form ocurre al cambiar de página.
+- **Implicación E2E:** todo test que responda una pregunta debe navegar después (o el assert de nota fallará con -1 punto exacto, como nos pasó: 3.00 en vez de 4.00).
+
+### F17 — Un ensayo RESPONDIDO retiene la nota de todo el intento ("Not yet graded")
+- **Real:** si el ensayo tiene respuesta, la nota del intento completo queda "Not yet graded" hasta calificación manual — el flujo 9 (nota automática exacta) es imposible con ensayo respondido. Un ensayo SIN responder pasa a `gaveup` (0 automático) y el resto sí se califica.
+- **Implicación:** el spec 04 deja el ensayo en blanco (0 determinista, nota exacta 4.00/7.00 verificada); responder+calificar el ensayo es el flujo 10 (spec 06) con su propio par (quiz, usuario).
+
+### F18 — Selectores accesibles reales de Boost 4.5 (varios ≠ markup clásico)
+- Las opciones multichoice/truefalse NO usan `<label>`: el accessible name vive en el propio radio ("a. París").
+- El botón de flag expone como accessible name el ESTADO ("Flagged"), no el texto visible ("Flag question").
+- El panel de navegación del intento vive en el block drawer, colapsado por defecto (los `#quiznavbuttonN` existen pero no son visibles).
+- La página del curso del profesor tiene DOS links "Grades" (navegación + user menu): strict mode los rechaza — el gradebook se abre por URL directa `grade/report/grader/index.php?id=courseid`.
+- La fila del intento en la vista del quiz es una tabla con caption "Attempt N summary"; el label del timestamp es "Completed", no "Submitted".
+
 ## 2026-07-12 — Depuración del CI (suite roja solo en GitHub Actions)
 
 ### F13 — `core/togglesensitive` de Moodle 4.5 borra el password tecleado durante su init

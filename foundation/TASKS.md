@@ -28,8 +28,8 @@
 - `[x]` Inicializar package.json e instalar Playwright (pnpm 11.9, @playwright/test 1.61.1, TS 7.0.2)
 - `[x]` Crear `playwright.config.ts` (projects setup/core/timed) y `auth.setup.ts` (storageState por rol)
 - `[x]` Configurar fixtures y manejo de roles (`roles.ts`, `testdata.ts`) — smoke 7/7 verde contra el stack vivo
-- `[ ]` Implementar Page Objects (`pages/*.ts`)
-- `[ ]` Escribir Specs funcionales (flujos 1 al 12)
+- `[x]` Implementar Page Objects (`pages/*.ts`) — BasePage (pending_js + navegación por nombre), QuizSettings, QuizAttempt, QuestionBank, Grading, AttemptsReport, Gradebook; smoke 8/8
+- `[/]` Escribir Specs funcionales (flujos 1 al 12) — 04 ✅ verde y repetible (flujos 6+8+9: nota exacta 4.00/7.00 en revisión y gradebook); pendientes 01, 02, 03, 05, 07, 08
 - `[ ]` Escribir Specs para Cambio 2 y Cambio 4
 - `[/]` Configurar CI (GitHub Actions) — pipeline activo: estático (shellcheck, php -l, compose config, gitleaks) + smoke del entorno (seed x2 + 13 asserts); el job e2e se auto-activa cuando exista la suite
 
