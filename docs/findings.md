@@ -49,6 +49,15 @@
 - **Real:** el id clásico del menú de usuario cambió; en 4.5 el toggle es `a#user-menu-toggle` (verificado inspeccionando el DOM vivo).
 - **Resolución:** selector actualizado en `LoginPage.ts`, encapsulado en el Page Object con nota.
 
+## 2026-07-12 — Depuración del CI (suite roja solo en GitHub Actions)
+
+### F13 — `core/togglesensitive` de Moodle 4.5 borra el password tecleado durante su init
+- **Síntoma:** los 4 logins del setup fallaban con "Invalid login" SOLO en CI; en local siempre verde. El trace de Playwright reveló el POST real: `username=admin&password=` — **password vacío** pese al `fill()`.
+- **Causa raíz (leída en `lib/amd/src/togglesensitive.js`):** `init("password", 1)` corre incondicionalmente en la página de login, captura `sensitiveInput.outerHTML` (que no serializa el valor tecleado), renderiza su template **asíncronamente** y al resolver hace `sensitiveInput.outerHTML = html` — **reemplaza el input entero, descartando lo tecleado en la ventana**. En CI (caches fríos, primer request del template en la vida del sitio) esa ventana dura lo suficiente para tragarse el fill; en local el template resuelve antes.
+- **Nota:** esto afecta también a humanos que tecleen rápido en conexiones lentas — candidato a reporte upstream a Moodle.
+- **Resolución (`LoginPage.ts`):** espera estilo Behat sobre `M.util.pending_js` (la señal oficial de "Moodle terminó su JS", que `togglesensitive` alimenta vía `core/pending`) antes de llenar + verificación `toHaveValue` con reintento como segunda capa. Cero sleeps fijos.
+- **Cómo se diagnosticó:** artefactos del run fallido (`gh run download`) → aria snapshot con el alert "Invalid login" → POST body extraído del `trace.zip` (recurso por sha1) → fuente del módulo en el contenedor. Reproducido el contexto con instalación fresca local (`down -v`): las credenciales autentican por API (`bool(true)`) — confirmando que era UI race, no datos.
+
 ## 2026-07-11 — Instalación de los plugins
 
 ### F12 — El entrypoint de `erseco/alpine-moodle` corre `upgrade.php` en cada arranque
