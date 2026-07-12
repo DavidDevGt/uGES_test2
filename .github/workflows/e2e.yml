@@ -97,8 +97,9 @@ jobs:
           docker compose logs --tail=150 moodle
           exit 1
 
-      - name: Seeding del entorno (idempotente)
-        run: bash scripts/seed.sh
+      - name: Seed + verificación del entorno (corre seed 2x + 17 asserts)
+        # Fail-fast de ~90s que distingue "entorno roto" de "test roto" (auditoría A4/C6).
+        run: bash scripts/verify-env.sh
 
       # ── Playwright ───────────────────────────────────────────────────────────
       - name: Correr suite completa
