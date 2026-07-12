@@ -1,28 +1,29 @@
-﻿{
+{
   "name": "uges-moodle-qa",
   "version": "1.0.0",
   "description": "Suite E2E automatizada del módulo de exámenes de Moodle (Playwright + TypeScript). Prueba Técnica 2 — GES.",
   "private": true,
-  "packageManager": "pnpm@10.12.4",
+  "packageManager": "pnpm@11.9.0",
   "engines": {
     "node": ">=20.6.0",
     "pnpm": ">=10"
   },
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed",
-    "test:ui": "playwright test --ui",
-    "test:debug": "playwright test --debug",
+    "test": "playwright test -c e2e",
+    "test:headed": "playwright test -c e2e --headed",
+    "test:ui": "playwright test -c e2e --ui",
+    "test:debug": "playwright test -c e2e --debug",
     "test:report": "playwright show-report",
-    "test:ci": "playwright test --reporter=html,github",
-    "install:browsers": "pnpm dlx playwright install --with-deps chromium",
-    "install:browsers:all": "pnpm dlx playwright install --with-deps",
+    "test:ci": "playwright test -c e2e --reporter=html,github",
+    "install:browsers": "playwright install --with-deps chromium",
+    "install:browsers:all": "playwright install --with-deps",
     "lint": "tsc --noEmit"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.0",
-    "typescript": "^7.0.2",
-    "dotenv": "^17.4.2"
+    "@types/node": "^26.1.1",
+    "dotenv": "^17.4.2",
+    "typescript": "^7.0.2"
   },
   "keywords": [
     "playwright",
