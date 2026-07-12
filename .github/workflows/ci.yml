@@ -1,0 +1,104 @@
+# CI — análisis estático + smoke del entorno (siempre corre).
+# La suite Playwright tiene su propio trigger por paths: ver e2e.yml.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Cancela corridas anteriores del mismo branch/PR — evita gasto doble en pushes rápidos.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Token mínimo: solo lectura de código.
+permissions:
+  contents: read
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # STATIC — todos los linters en paralelo dentro del mismo runner (sin deps externas)
+  # ─────────────────────────────────────────────────────────────────────────────
+  static:
+    name: Análisis estático
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # gitleaks necesita historial completo
+
+      - name: ShellCheck (scripts bash)
+        # SC1091: source .env no seguido — esperado, no es error real.
+        run: shellcheck --severity=warning scripts/*.sh
+
+      - name: Lint PHP (scripts CLI de Moodle)
+        run: docker run --rm -v "$PWD/scripts:/s:ro" php:8.3-cli-alpine sh -c 'for f in /s/*.php; do php -l "$f"; done'
+
+      - name: Validar compose.yml
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+
+      - name: TypeScript check
+        # Verifica el proyecto e2e sin emitir — caza errores de tipos antes de correr.
+        run: |
+          npm install -g pnpm@latest-8 --silent 2>/dev/null || true
+          npx --yes pnpm@latest install --frozen-lockfile --silent
+          npx tsc --noEmit -p tsconfig.json
+
+      - name: Actionlint (linter del propio CI)
+        # Valida la sintaxis de los workflows antes de que lleguen al runner de GitHub.
+        run: docker run --rm -v "$PWD/.github:/github:ro" rhysd/actionlint:latest -color /github/workflows/*.yml
+
+      - name: Gitleaks (secretos commiteados)
+        run: docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:latest detect --source /repo --no-banner
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # ENV-SMOKE — levanta el stack completo y valida seeding idempotente + auth
+  # ─────────────────────────────────────────────────────────────────────────────
+  env-smoke:
+    name: Entorno + seeding (smoke)
+    runs-on: ubuntu-latest
+    needs: static
+    timeout-minutes: 20 # Moodle tarda ~7 min en instalar desde cero; 20 es margen seguro.
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Levantar stack (compose up)
+        run: |
+          cp .env.example .env
+          docker compose up -d
+
+      - name: Esperar Moodle healthy (máx 8 min / 96 × 5 s)
+        run: |
+          cid=$(docker compose ps -q moodle)
+          for i in $(seq 1 96); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' "$cid" 2>/dev/null || echo "missing")
+            [ "$status" = "healthy" ] && echo "✓ Moodle healthy en intento $i" && exit 0
+            state=$(docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || echo "")
+            case "$state" in restarting|exited|dead) break ;; esac
+            sleep 5
+          done
+          echo "::error::Moodle no llegó a healthy"
+          docker compose logs --tail=100 moodle
+          exit 1
+
+      - name: Info de imágenes (digest + tamaño para trazabilidad)
+        run: docker images --format '{{.Repository}}:{{.Tag}}  {{.Size}}  {{.Digest}}' | sort
+
+      - name: Verificación del entorno — seed idempotente + 13 asserts + logins
+        run: bash scripts/verify-env.sh
+
+      - name: Recolectar logs (siempre, incluso si falla)
+        if: always()
+        run: docker compose logs > compose-logs.txt 2>&1
+
+      - name: Publicar logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: compose-logs
+          path: compose-logs.txt
+          retention-days: 7

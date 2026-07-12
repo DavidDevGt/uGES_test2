@@ -1,136 +1,133 @@
-# CI del proyecto (SPECS.md §4.4).
-# Etapas hoy: análisis estático → smoke del entorno (compose up + seed x2 + asserts).
-# La etapa e2e (Playwright) se activa sola cuando exista e2e/ — ver job "e2e" abajo.
-name: CI
+# Suite Playwright E2E — se activa solo cuando cambia código relevante.
+# Separado de ci.yml para no bloquear PRs de docs/infra con la espera de Moodle.
+name: E2E
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'e2e/**'
+      - 'plugins/**'
+      - 'scripts/seed.sh'
+      - 'compose.yml'
+      - '.env.example'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
   pull_request:
+    paths:
+      - 'e2e/**'
+      - 'plugins/**'
+      - 'scripts/seed.sh'
+      - 'compose.yml'
+      - '.env.example'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
   workflow_dispatch: # disparo manual para la demo en vivo
 
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write # necesario para el reporter github nativo de Playwright
+
 jobs:
-  static:
-    name: Análisis estático
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0 # gitleaks necesita el historial
-
-      - name: ShellCheck (scripts bash)
-        # SC1091 (source .env no seguido) es info esperado; warnings+ sí rompen.
-        run: shellcheck --severity=warning scripts/*.sh
-
-      - name: Lint PHP (scripts CLI de Moodle)
-        run: docker run --rm -v "$PWD/scripts:/s:ro" php:8.3-cli-alpine sh -c 'for f in /s/*.php; do php -l "$f"; done'
-
-      - name: Validar compose.yml
-        run: |
-          cp .env.example .env
-          docker compose config --quiet
-
-      - name: Gitleaks (secretos commiteados)
-        run: docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:latest detect --source /repo --no-banner
-
-  env-smoke:
-    name: Entorno + seeding (smoke)
-    runs-on: ubuntu-latest
-    needs: static
-    outputs:
-      has_e2e: ${{ steps.detect.outputs.has_e2e }}
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Detectar si la suite e2e ya existe
-        id: detect
-        run: |
-          if compgen -G "e2e/**/*.ts" > /dev/null || ls e2e/*.ts >/dev/null 2>&1; then
-            echo "has_e2e=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_e2e=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Levantar stack
-        run: |
-          cp .env.example .env
-          docker compose up -d
-
-      - name: Esperar Moodle healthy
-        run: |
-          cid=$(docker compose ps -q moodle)
-          for _ in $(seq 1 80); do
-            h=$(docker inspect -f '{{.State.Health.Status}}' "$cid")
-            [ "$h" = "healthy" ] && exit 0
-            s=$(docker inspect -f '{{.State.Status}}' "$cid")
-            case "$s" in restarting|exited) break ;; esac
-            sleep 5
-          done
-          echo "::error::Moodle no llegó a healthy"
-          docker compose logs moodle
-          exit 1
-
-      - name: Info de imágenes (tamaño y digest, para el registro de la corrida)
-        run: docker images --format '{{.Repository}}:{{.Tag}}  {{.Size}}  {{.Digest}}' | sort
-
-      - name: Verificación del entorno (seed idempotente + asserts + logins)
-        run: bash scripts/verify-env.sh
-
-      - name: Recolectar logs
-        if: always()
-        run: docker compose logs > compose-logs.txt 2>&1
-
-      - name: Publicar logs como artefacto
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: compose-logs
-          path: compose-logs.txt
-          retention-days: 7
-
-  e2e:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # E2E — stack + seed + Playwright (un solo job: evita el doble arranque de Moodle)
+  # ─────────────────────────────────────────────────────────────────────────────
+  playwright:
     name: Suite Playwright
     runs-on: ubuntu-latest
-    needs: env-smoke
-    # Se activa automáticamente cuando la suite exista en el repo.
-    if: ${{ needs.env-smoke.outputs.has_e2e == 'true' }}
+    timeout-minutes: 25 # Moodle up (~7 min) + seed (~2 min) + tests (~10 min) + margen
+
     steps:
       - uses: actions/checkout@v7
 
+      # ── Toolchain Node/pnpm ─────────────────────────────────────────────────
       - uses: pnpm/action-setup@v6
+        with:
+          version: 11 # coincide con packageManager en package.json
 
       - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: pnpm # caché del store de pnpm entre corridas
 
-      - name: Instalar dependencias
+      - name: Instalar dependencias npm
         run: pnpm install --frozen-lockfile
 
-      - name: Caché de browsers de Playwright
+      # ── Caché de browsers de Playwright ─────────────────────────────────────
+      # Key basada en lockfile: solo se invalida cuando cambian las deps de Playwright.
+      - name: Restaurar caché de browsers
+        id: playwright-cache
         uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: playwright-${{ runner.os }}-
 
-      - name: Instalar browsers
-        run: pnpm dlx playwright install --with-deps chromium
+      - name: Instalar browsers Playwright
+        # Usa el binario del paquete instalado (no pnpm dlx) — versión garantizada igual al lockfile.
+        # Solo instala si la caché no era exacta (restore-keys puede traer una parcial).
+        run: |
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
+            npx playwright install --with-deps chromium
+          else
+            # Instalar solo las system-deps que el runner pueda no tener aunque el cache sea hit.
+            npx playwright install-deps chromium
+          fi
 
-      - name: Levantar stack + seed
+      # ── Stack de Moodle ──────────────────────────────────────────────────────
+      - name: Levantar stack (compose up)
         run: |
           cp .env.example .env
-          docker compose up -d --wait
-          bash scripts/seed.sh
+          docker compose up -d
 
-      - name: Correr suite
-        run: pnpm test
+      - name: Esperar Moodle healthy (máx 8 min)
+        run: |
+          cid=$(docker compose ps -q moodle)
+          for i in $(seq 1 96); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' "$cid" 2>/dev/null || echo "missing")
+            [ "$status" = "healthy" ] && echo "✓ Moodle healthy (intento $i)" && exit 0
+            state=$(docker inspect -f '{{.State.Status}}' "$cid" 2>/dev/null || echo "")
+            case "$state" in restarting|exited|dead) break ;; esac
+            sleep 5
+          done
+          echo "::error::Moodle no llegó a healthy — abortando"
+          docker compose logs --tail=150 moodle
+          exit 1
 
-      - name: Publicar reporte HTML + traces
-        if: always()
+      - name: Seeding del entorno (idempotente)
+        run: bash scripts/seed.sh
+
+      # ── Playwright ───────────────────────────────────────────────────────────
+      - name: Correr suite completa
+        # pnpm test:ci lleva -c e2e --reporter=html,github (definido en package.json).
+        # El proyecto "setup" corre primero (auth), luego "core" (paralelo) y "timed" (serial).
+        run: pnpm test:ci
+        env:
+          SITE_URL: http://localhost:8080
+
+      # ── Evidencia de corrida ─────────────────────────────────────────────────
+      - name: Publicar reporte HTML + traces + videos
+        if: always() # siempre, incluso si los tests fallan — es evidencia de fallo
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ github.run_number }}
           path: |
             playwright-report/
             test-results/
           retention-days: 14
+
+      - name: Recolectar logs de compose (siempre)
+        if: always()
+        run: docker compose logs > compose-logs-e2e.txt 2>&1
+
+      - name: Publicar logs de compose
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: compose-logs-e2e-${{ github.run_number }}
+          path: compose-logs-e2e.txt
+          retention-days: 7
