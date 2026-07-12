@@ -44,6 +44,16 @@ foreach ($enrolments as $username => $rolename) {
     mtrace("    $username matriculado como $rolename");
 }
 
+// ---------- 1b. Editor plano para usuarios de prueba ----------
+// TinyMCE es la mayor fuente de flakiness E2E (iframes, init async). Con la
+// preferencia 'textarea' los campos ricos son <textarea> planos y estables.
+mtrace('==> Preferencia de editor plano (textarea) para usuarios de prueba');
+foreach (array_keys($enrolments) as $username) {
+    $u = $DB->get_record('user', ['username' => $username, 'deleted' => 0], '*', MUST_EXIST);
+    set_user_preference('htmleditor', 'textarea', $u);
+    mtrace("    $username: htmleditor=textarea");
+}
+
 // ---------- 2. Preguntas en los quizzes ----------
 // Última versión de cada pregunta SEED-* (el banco 4.x versiona las preguntas).
 $seedquestions = $DB->get_records_sql("

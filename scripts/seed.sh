@@ -106,14 +106,24 @@ fi
 echo "==> Banco de preguntas SEED-*"
 NQ=$(sql_value "SELECT COUNT(*) FROM mdl_question WHERE name LIKE 'SEED-%'")
 if [ "${NQ:-0}" -ge 6 ]; then
-  echo "    ya importado ($NQ preguntas)"
+  echo "    banco base ya importado"
 else
   docker compose cp scripts/seed-questions.xml moodle:/tmp/seed-questions.xml >/dev/null
   # Sintaxis moosh: questionbank-import <archivo> <id categoría de preguntas>
   moosh_ questionbank-import /tmp/seed-questions.xml "$QCATID"
-  NQ=$(sql_value "SELECT COUNT(*) FROM mdl_question WHERE name LIKE 'SEED-%'")
-  echo "    importadas $NQ preguntas"
 fi
+
+# Pool de reserva para el slot aleatorio (F14: la aleatoria excluye las preguntas
+# ya fijas en el mismo quiz — sin reserva, el pool queda vacío y el intento no inicia).
+NEXTRA=$(sql_value "SELECT COUNT(*) FROM mdl_question WHERE name IN ('SEED-MC-02','SEED-TF-02')")
+if [ "${NEXTRA:-0}" -ge 2 ]; then
+  echo "    pool de reserva ya importado"
+else
+  docker compose cp scripts/seed-questions-extra.xml moodle:/tmp/seed-questions-extra.xml >/dev/null
+  moosh_ questionbank-import /tmp/seed-questions-extra.xml "$QCATID"
+fi
+NQ=$(sql_value "SELECT COUNT(*) FROM mdl_question WHERE name LIKE 'SEED-%'")
+echo "    $NQ preguntas SEED- en el banco (6 base + 2 reserva)"
 
 ensure_quiz() { # name section
   local name="$1" section="$2"
@@ -133,8 +143,10 @@ ensure_quiz "quiz-timed" 1
 QUIZGEN=$(sql_value "SELECT id FROM mdl_quiz WHERE course=$COURSEID AND name='quiz-general'")
 QUIZTIMED=$(sql_value "SELECT id FROM mdl_quiz WHERE course=$COURSEID AND name='quiz-timed'")
 
-# quiz-timed: límite 2 min, gracia 1 min (mínimo permitido por graceperiodmin), 2 intentos, nota más alta (D4)
-moosh_ sql-run "UPDATE mdl_quiz SET timelimit=120, overduehandling='graceperiod', graceperiod=60, attempts=2, grademethod=1 WHERE id=$QUIZTIMED" >/dev/null
+# quiz-timed: límite 2 min, gracia 2 min, 2 intentos, nota más alta (D4).
+# Gracia 120s (no el mínimo de 60s): la ventana de envío en gracia debe ser holgada
+# en runners de CI cargados (auditoría C5); sigue siendo un timer corto.
+moosh_ sql-run "UPDATE mdl_quiz SET timelimit=120, overduehandling='graceperiod', graceperiod=120, attempts=2, grademethod=1 WHERE id=$QUIZTIMED" >/dev/null
 # quiz-general: sin límite, intentos ilimitados
 moosh_ sql-run "UPDATE mdl_quiz SET timelimit=0, attempts=0 WHERE id=$QUIZGEN" >/dev/null
 
@@ -158,5 +170,5 @@ echo " curso       : $COURSE_SHORTNAME (id=$COURSEID)"
 echo " usuarios    : ${TEACHER_USER:-teacher1}, ${STUDENT1_USER:-student1}, ${STUDENT2_USER:-student2}"
 echo " preguntas   : $NQ con prefijo SEED-"
 echo " quiz-general: id=$QUIZGEN (sin límite)"
-echo " quiz-timed  : id=$QUIZTIMED (120s + gracia 60s, 2 intentos, nota más alta)"
+echo " quiz-timed  : id=$QUIZTIMED (120s + gracia 120s, 2 intentos, nota más alta)"
 echo "===================================="

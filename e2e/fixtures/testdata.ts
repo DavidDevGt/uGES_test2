@@ -19,9 +19,22 @@ export const TESTDATA = {
       slots: 2, // SEED-MC-01 + SEED-TF-01
       maxGrade: 2,
       timeLimitSecs: 120,
-      gracePeriodSecs: 60,
+      gracePeriodSecs: 120, // holgado para runners de CI (auditoría C5)
       attempts: 2,
     },
+  },
+  /**
+   * Matriz de aislamiento (auditoría C2): cada spec que CONSUME intentos usa un par
+   * (quiz, usuario) ÚNICO en toda la suite y corre resetAttempts(quiz, user) en su
+   * beforeAll. Así fullyParallel nunca produce "attempt already in progress", los
+   * intentos no se agotan entre corridas (repetibilidad) y un reset jamás borra
+   * los intentos en vuelo de otro spec. Los specs read-only pueden compartir usuario.
+   */
+  attemptPairs: {
+    studentFlows: { quiz: 'quiz-general', user: 'student1' }, // spec 04 (flujos 6, 8, 9)
+    grading: { quiz: 'quiz-general', user: 'student2' }, // spec 06 (flujo 10)
+    timer: { quiz: 'quiz-timed', user: 'student1' }, // spec 05 (flujo 7 — proyecto timed, serial)
+    gracePenalty: { quiz: 'quiz-timed', user: 'student2' }, // spec 10 (Cambio 4 — proyecto timed)
   },
   questions: {
     multichoice: { name: 'SEED-MC-01', correct: 'París' },

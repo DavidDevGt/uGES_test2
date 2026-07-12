@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { STORAGE, newContextAs } from '../fixtures/roles';
 import { TESTDATA } from '../fixtures/testdata';
+import { QuizAttemptPage } from '../pages/QuizAttemptPage';
 
 /**
  * Smoke del harness: valida que la configuración (auth por storageState, baseURL,
@@ -29,6 +30,17 @@ test.describe('smoke: sesión de profesor', () => {
     // .first(): cada actividad aparece 2 veces (course index drawer + contenido del curso).
     await expect(page.getByRole('link', { name: TESTDATA.quizzes.general.name }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: TESTDATA.quizzes.timed.name }).first()).toBeVisible();
+  });
+});
+
+test.describe('smoke: Page Objects — navegación por nombre', () => {
+  test.use({ storageState: STORAGE.student1 });
+
+  test('QuizAttemptPage llega a la vista del quiz y ofrece iniciar intento', async ({ page }) => {
+    const attempt = new QuizAttemptPage(page);
+    await attempt.openQuiz(TESTDATA.course.fullname, TESTDATA.quizzes.general.name);
+    await expect(attempt.attemptButton).toBeVisible();
+    expect(attempt.cmidFromUrl()).toBeGreaterThan(0);
   });
 });
 

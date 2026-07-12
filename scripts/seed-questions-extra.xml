@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Pool de reserva para el slot aleatorio (hallazgo F14): la pregunta aleatoria
+     EXCLUYE las preguntas ya usadas en slots fijos del mismo quiz — con las 6 SEED
+     fijas en quiz-general, el pool era cero y el intento no podía iniciarse
+     ("There are not enough questions in category ..."). Estas 2 nunca van fijas. -->
+<quiz>
+
+  <question type="multichoice">
+    <name><text>SEED-MC-02</text></name>
+    <questiontext format="html">
+      <text><![CDATA[<p>¿Cuál es la capital de Italia?</p>]]></text>
+    </questiontext>
+    <generalfeedback format="html"><text></text></generalfeedback>
+    <defaultgrade>1</defaultgrade>
+    <penalty>0.3333333</penalty>
+    <hidden>0</hidden>
+    <single>true</single>
+    <shuffleanswers>false</shuffleanswers>
+    <answernumbering>abc</answernumbering>
+    <answer fraction="100" format="html">
+      <text>Roma</text>
+      <feedback format="html"><text>Correcto</text></feedback>
+    </answer>
+    <answer fraction="0" format="html">
+      <text>Milán</text>
+      <feedback format="html"><text></text></feedback>
+    </answer>
+    <answer fraction="0" format="html">
+      <text>Nápoles</text>
+      <feedback format="html"><text></text></feedback>
+    </answer>
+  </question>
+
+  <question type="truefalse">
+    <name><text>SEED-TF-02</text></name>
+    <questiontext format="html">
+      <text><![CDATA[<p>2 + 2 = 4.</p>]]></text>
+    </questiontext>
+    <generalfeedback format="html"><text></text></generalfeedback>
+    <defaultgrade>1</defaultgrade>
+    <penalty>1</penalty>
+    <hidden>0</hidden>
+    <answer fraction="100" format="moodle_auto_format">
+      <text>true</text>
+      <feedback format="html"><text>Correcto</text></feedback>
+    </answer>
+    <answer fraction="0" format="moodle_auto_format">
+      <text>false</text>
+      <feedback format="html"><text></text></feedback>
+    </answer>
+  </question>
+
+</quiz>

@@ -34,8 +34,8 @@ check "usuarios de prueba" \
   "$(sql_num "SELECT COUNT(*) FROM mdl_user WHERE username IN ('teacher1','student1','student2') AND deleted=0")" "3"
 check "matriculados en QA-EXAMS-101" \
   "$(sql_num "SELECT COUNT(DISTINCT ue.userid) FROM mdl_user_enrolments ue JOIN mdl_enrol e ON e.id=ue.enrolid JOIN mdl_course c ON c.id=e.courseid WHERE c.shortname='${COURSE_SHORTNAME:-QA-EXAMS-101}'")" "3"
-check "preguntas SEED- (sin duplicados)" \
-  "$(sql_num "SELECT COUNT(*) FROM mdl_question WHERE name LIKE 'SEED-%'")" "6"
+check "preguntas SEED- (6 base + 2 reserva del pool aleatorio, sin duplicados)" \
+  "$(sql_num "SELECT COUNT(*) FROM mdl_question WHERE name LIKE 'SEED-%'")" "8"
 check "slots de quiz-general (6 fijas + 1 aleatoria)" \
   "$(sql_num "SELECT COUNT(*) FROM mdl_quiz_slots s JOIN mdl_quiz q ON q.id=s.quizid WHERE q.name='quiz-general'")" "7"
 check "slots de quiz-timed" \
@@ -43,7 +43,7 @@ check "slots de quiz-timed" \
 check "quiz-timed timelimit" \
   "$(sql_num "SELECT timelimit FROM mdl_quiz WHERE name='quiz-timed'")" "120"
 check "quiz-timed graceperiod" \
-  "$(sql_num "SELECT graceperiod FROM mdl_quiz WHERE name='quiz-timed'")" "60"
+  "$(sql_num "SELECT graceperiod FROM mdl_quiz WHERE name='quiz-timed'")" "120"
 check "quiz-timed overduehandling" \
   "$(sql_str "SELECT overduehandling FROM mdl_quiz WHERE name='quiz-timed'")" "graceperiod"
 check "quiz-timed intentos permitidos" \
