@@ -41,16 +41,25 @@ jobs:
           cp .env.example .env
           docker compose config --quiet
 
+      - uses: pnpm/action-setup@v6
+        # Sin 'version:' → lee packageManager de package.json (pnpm@11.9.0).
+        # Evita el conflicto ERR_PNPM_BAD_PM_VERSION.
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias (solo para tsc)
+        run: pnpm install --frozen-lockfile
+
       - name: TypeScript check
         # Verifica el proyecto e2e sin emitir — caza errores de tipos antes de correr.
-        run: |
-          npm install -g pnpm@latest-8 --silent 2>/dev/null || true
-          npx --yes pnpm@latest install --frozen-lockfile --silent
-          npx tsc --noEmit -p tsconfig.json
+        run: npx tsc --noEmit -p tsconfig.json
 
       - name: Actionlint (linter del propio CI)
-        # Valida la sintaxis de los workflows antes de que lleguen al runner de GitHub.
-        run: docker run --rm -v "$PWD/.github:/github:ro" rhysd/actionlint:latest -color /github/workflows/*.yml
+        # actionlint no acepta globs ni directorios — archivos explícitos.
+        run: docker run --rm -v "$PWD/.github/workflows:/w:ro" rhysd/actionlint:latest -color /w/ci.yml /w/e2e.yml
 
       - name: Gitleaks (secretos commiteados)
         run: docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:latest detect --source /repo --no-banner

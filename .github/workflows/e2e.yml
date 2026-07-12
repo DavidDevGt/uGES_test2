@@ -46,8 +46,7 @@ jobs:
 
       # ── Toolchain Node/pnpm ─────────────────────────────────────────────────
       - uses: pnpm/action-setup@v6
-        with:
-          version: 11 # coincide con packageManager en package.json
+        # Sin 'version:' → lee packageManager de package.json (pnpm@11.9.0).
 
       - uses: actions/setup-node@v6
         with:
