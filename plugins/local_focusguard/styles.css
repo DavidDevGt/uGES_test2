@@ -1,0 +1,17 @@
+/* local_focusguard — badge del reporte de intentos (Moodle incluye styles.css de cada plugin). */
+.focusguard-badge {
+    display: inline-block;
+    margin-left: .5rem;
+    padding: .1rem .5rem;
+    border-radius: .25rem;
+    background: #e9ecef;
+    color: #212529;
+    font-size: .85em;
+    white-space: nowrap;
+}
+
+.focusguard-badge.focusguard-alert {
+    background: #dc3545;
+    color: #fff;
+    font-weight: 600;
+}

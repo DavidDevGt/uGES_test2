@@ -48,6 +48,22 @@ ensure_user() { # username pass firstname lastname
 
 wait_moodle
 
+# Sin grunt en este entorno: Moodle en producción sirve AMD desde amd/build/*.min.js.
+# Sincronizar src → build en cada seed elimina el riesgo de drift (revisión M1);
+# la purga de caches del final hace que Moodle recoja la versión nueva.
+echo "==> Sincronizando builds AMD (src → build)"
+for d in plugins/*/amd; do
+  [ -d "$d/src" ] || continue
+  mkdir -p "$d/build"
+  for f in "$d"/src/*.js; do
+    [ -e "$f" ] || continue
+    cp "$f" "$d/build/$(basename "$f" .js).min.js"
+  done
+done
+
+echo "==> Instalando/actualizando plugins locales (upgrade.php es idempotente)"
+docker compose exec -T moodle php /var/www/html/admin/cli/upgrade.php --non-interactive >/dev/null
+
 echo "==> Categoría de cursos '$CATEGORY_NAME'"
 CATID=$(sql_value "SELECT id FROM mdl_course_categories WHERE name='$CATEGORY_NAME'")
 if [ -z "$CATID" ]; then
@@ -128,6 +144,9 @@ docker compose exec -T moodle php /tmp/seed-course-setup.php \
   --shortname="$COURSE_SHORTNAME" \
   --teacher="${TEACHER_USER:-teacher1}" \
   --students="${STUDENT1_USER:-student1},${STUDENT2_USER:-student2}"
+
+echo "==> Endurecimiento para E2E: deshabilitar user tours (diálogos de onboarding rompen los tests)"
+moosh_ sql-run "UPDATE mdl_tool_usertours_tours SET enabled=0" >/dev/null
 
 echo "==> Purga de caches"
 moosh_ cache-clear >/dev/null || moosh_ purge-caches >/dev/null || true

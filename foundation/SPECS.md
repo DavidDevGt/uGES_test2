@@ -130,8 +130,8 @@
 │   ├── seed-course-setup.php        # matriculaciones (API enrol) + preguntas fijas y aleatoria al quiz (API mod_quiz)
 │   └── reset-attempts.sh            # limpieza entre corridas (moosh quiz-delete-attempts; borra intentos, no la config)
 ├── e2e/
-│   ├── playwright.config.ts         # projects: setup → teacher-flows → student-flows → grading-flows → changes
-│   ├── global-setup.ts              # espera healthcheck, corre seed, guarda storageState por rol
+│   ├── playwright.config.ts         # projects: setup (auth) → core (paralelo) → timed (serial: specs de timer)
+│   ├── auth.setup.ts                # proyecto setup: login por rol → storageState en e2e/.auth (patrón moderno recomendado por Playwright; sustituye al global-setup.ts planeado — aparece en el reporte HTML con su propio trace)
 │   ├── fixtures/
 │   │   ├── roles.ts                 # contexts autenticados: asAdmin, asTeacher, asStudent
 │   │   └── testdata.ts              # ids/nombres sembrados (SEED-*), lee .env

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="local/graceguard/db" VERSION="20260711"
+    COMMENT="XMLDB file for local_graceguard"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd">
+  <TABLES>
+    <TABLE NAME="local_graceguard_log" COMMENT="Audit log of grace period penalties (fuente del mensaje al estudiante)">
+      <FIELDS>
+        <FIELD NAME="id"             TYPE="int"    LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="attemptid"      TYPE="int"    LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="FK quiz_attempts.id"/>
+        <FIELD NAME="userid"         TYPE="int"    LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="quizid"         TYPE="int"    LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="original_grade" TYPE="number" LENGTH="10" NOTNULL="true" DECIMALS="5" SEQUENCE="false"/>
+        <FIELD NAME="penalty_pct"    TYPE="int"    LENGTH="10" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="final_grade"    TYPE="number" LENGTH="10" NOTNULL="true" DECIMALS="5" SEQUENCE="false"/>
+        <FIELD NAME="timeapplied"    TYPE="int"    LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <!-- UNIQUE: el observer no penaliza dos veces el mismo intento (SPECS §3.2). -->
+        <KEY NAME="attemptid" TYPE="unique" FIELDS="attemptid"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="quizid" UNIQUE="false" FIELDS="quizid"/>
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>

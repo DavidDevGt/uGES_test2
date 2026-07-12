@@ -44,6 +44,10 @@ services:
     volumes:
       - moodledata:/var/www/moodledata
       - moodlehtml:/var/www/html
+      # Plugins del repo montados en la capa local/ (D2: sin tocar core).
+      # seed.sh corre admin/cli/upgrade.php para instalarlos/actualizarlos.
+      - ./plugins/local_focusguard:/var/www/html/local/focusguard
+      - ./plugins/local_graceguard:/var/www/html/local/graceguard
     healthcheck:
       # Hallazgos 2026-07-11: (1) "localhost" resuelve a ::1 en Alpine y nginx solo escucha IPv4 → 127.0.0.1 explícito.
       # (2) /login/index.php responde 303 hacia $CFG->wwwroot (localhost) → curl sin -L: no sigue el redirect y -f acepta 3xx.

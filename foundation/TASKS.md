@@ -7,25 +7,27 @@
 - `[x]` Crear script de limpieza `scripts/reset-attempts.sh` (moosh `quiz-delete-attempts`) — probado
 
 ## Cambio 2: `local_focusguard`
-- `[ ]` Estructura básica del plugin (`version.php`, `lang/en/...`)
-- `[ ]` Definir esquema de DB (`install.xml` -> `local_focusguard_counts`)
-- `[ ]` Crear Web Service (`services.php`, `externallib.php`)
-- `[ ]` Crear módulo AMD JS para capturar `blur` y `visibilitychange`
-- `[ ]` Hook en `lib.php` para inyectar JS en `mod/quiz/attempt.php`
-- `[ ]` Hook en `lib.php` para inyectar badge de alerta en la vista de reportes
+- `[x]` Estructura básica del plugin (`version.php`, `lang/en/...`)
+- `[x]` Definir esquema de DB (`install.xml` -> `local_focusguard_counts`, campo `blurcount` — no `count`, palabra SQL)
+- `[x]` Crear Web Service (`services.php` + `classes/external/report_blur.php`, patrón `core_external` 4.x)
+- `[x]` Crear módulo AMD JS para capturar `blur` y `visibilitychange` (debounce 1s, fallo no bloquea)
+- `[x]` Hooks API (`db/hooks.php` + `hook_callbacks`) para inyectar JS en la página del intento
+- `[x]` Badge en la vista de reportes: data-attribute JSON + `report.js` + `styles.css` (alerta si >3)
+- `[ ]` Verificación E2E funcional (spec 09)
 
 ## Cambio 4: `local_graceguard`
-- `[ ]` Estructura básica del plugin (`version.php`, `lang/en/...`)
-- `[ ]` Definir esquema de DB (`install.xml` -> `local_graceguard_log`)
-- `[ ]` Página de configuración de administrador (`settings.php`)
-- `[ ]` Crear Event Observer para `\mod_quiz\event\attempt_submitted`
-- `[ ]` Lógica de recálculo de calificación y log de auditoría
-- `[ ]` Modificar vista de revisión para mostrar mensaje al estudiante
+- `[x]` Estructura básica del plugin (`version.php`, `lang/en/...`)
+- `[x]` Definir esquema de DB (`install.xml` -> `local_graceguard_log`, UNIQUE attemptid = idempotencia)
+- `[x]` Página de configuración de administrador (`settings.php`: enabled + penaltypct, defaults verificados en BD)
+- `[x]` Event Observer para `\mod_quiz\event\attempt_submitted` (internal=false, doble señal de detección)
+- `[x]` Lógica de penalización + log de auditoría + regrade vía `grade_calculator` (fallback legacy documentado)
+- `[x]` Mensaje al estudiante en la revisión vía Hooks API (`#local-graceguard-notice`)
+- `[ ]` Verificación E2E funcional (spec 10, con timer real)
 
 ## Suite QA (Playwright)
-- `[ ]` Inicializar package.json e instalar Playwright
-- `[ ]` Crear `playwright.config.ts` y `global-setup.ts`
-- `[ ]` Configurar fixtures y manejo de roles (`admin`, `teacher`, `student`)
+- `[x]` Inicializar package.json e instalar Playwright (pnpm 11.9, @playwright/test 1.61.1, TS 7.0.2)
+- `[x]` Crear `playwright.config.ts` (projects setup/core/timed) y `auth.setup.ts` (storageState por rol)
+- `[x]` Configurar fixtures y manejo de roles (`roles.ts`, `testdata.ts`) — smoke 7/7 verde contra el stack vivo
 - `[ ]` Implementar Page Objects (`pages/*.ts`)
 - `[ ]` Escribir Specs funcionales (flujos 1 al 12)
 - `[ ]` Escribir Specs para Cambio 2 y Cambio 4

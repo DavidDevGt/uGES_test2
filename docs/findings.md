@@ -35,6 +35,26 @@
 - **Real:** MSYS convierte `/tmp/seed-questions.xml` en `C:/Users/.../Temp/...` al pasarlo como argumento de `docker compose exec` → moosh busca `/opt/moosh/C:/Users/...`.
 - **Resolución:** `export MSYS_NO_PATHCONV=1` en los scripts (no-op en Linux/macOS). Relevante para evaluadores en Windows.
 
+## 2026-07-11 — Configuración de la suite Playwright
+
+### F9 — BOM UTF-8 en `package.json` rompe pnpm
+- **Real:** el archivo (generado desde un editor Windows) empezaba con `EF BB BF`; JSON no admite BOM y pnpm aborta con `Invalid package.json`.
+- **Resolución:** reescrito sin BOM; `.gitattributes` ya fuerza LF para archivos de texto.
+
+### F10 — Los user tours de Moodle bloquean el primer login automatizado
+- **Real:** en el primer login de cada usuario, Moodle 4.5 muestra el diálogo de onboarding del block drawer ("Expand to explore"), que intercepta la página y rompe los asserts post-login.
+- **Resolución:** `UPDATE mdl_tool_usertours_tours SET enabled=0` como paso de endurecimiento en `seed.sh` (elimina además una fuente de flakiness para toda la suite).
+
+### F11 — `#usermenu` ya no existe en Boost 4.5
+- **Real:** el id clásico del menú de usuario cambió; en 4.5 el toggle es `a#user-menu-toggle` (verificado inspeccionando el DOM vivo).
+- **Resolución:** selector actualizado en `LoginPage.ts`, encapsulado en el Page Object con nota.
+
+## 2026-07-11 — Instalación de los plugins
+
+### F12 — El entrypoint de `erseco/alpine-moodle` corre `upgrade.php` en cada arranque
+- **Real:** al recrear el contenedor con los plugins montados en `local/`, el entrypoint los instaló automáticamente (por eso `admin/cli/upgrade.php` manual respondía "No upgrade needed" — ya estaban en BD). El paso explícito de `seed.sh` queda como cinturón y tirantes para el caso "montar plugins sin recrear el contenedor".
+- **Implicación:** los settings de admin reciben sus defaults en esa instalación automática (verificado: `enabled=1`, `penaltypct=10`).
+
 ### F8 — Contexto CLI de Moodle: sin `$USER` no hay pregunta aleatoria
 - **Real:** `quiz_add_random_questions()` valida la capability `useall` contra el usuario de sesión; en CLI no hay sesión → "Sorry, but you do not currently have permissions".
 - **Resolución:** `\core\session\manager::set_user(get_admin())` + `$CFG->noemailever = true` al inicio del script CLI (lo segundo evita el error de `email_to_user` con SMTP sin configurar).

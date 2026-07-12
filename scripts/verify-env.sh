@@ -49,6 +49,16 @@ check "quiz-timed overduehandling" \
 check "quiz-timed intentos permitidos" \
   "$(sql_num "SELECT attempts FROM mdl_quiz WHERE name='quiz-timed'")" "2"
 
+echo "==> [3b/4] Plugins locales instalados (Cambios 2 y 4)"
+check "version local_focusguard en BD" \
+  "$(sql_str "SELECT value FROM mdl_config_plugins WHERE plugin='local_focusguard' AND name='version'")" "2026071100"
+check "version local_graceguard en BD" \
+  "$(sql_str "SELECT value FROM mdl_config_plugins WHERE plugin='local_graceguard' AND name='version'")" "2026071100"
+check "tablas propias de los plugins" \
+  "$(sql_num "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('mdl_local_focusguard_counts','mdl_local_graceguard_log')")" "2"
+check "web service report_blur registrado" \
+  "$(sql_num "SELECT COUNT(*) FROM mdl_external_functions WHERE name='local_focusguard_report_blur'")" "1"
+
 echo "==> [4/4] Autenticación real por rol (authenticate_user_login)"
 login_check() { # username password
   if docker compose exec -T -e VU="$1" -e VP="$2" moodle php -r \
