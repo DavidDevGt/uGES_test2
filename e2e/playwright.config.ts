@@ -33,6 +33,7 @@ export default defineConfig({
       name: 'setup',
       testDir: '.',
       testMatch: /auth\.setup\.ts/,
+      fullyParallel: false, // Moodle puede dar "Invalid login" por locks de sesión/logintoken al recibir 4 logins paralelos
     },
     {
       name: 'core',
