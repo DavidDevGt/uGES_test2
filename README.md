@@ -78,7 +78,7 @@ uGES_test2/
 
 | Capa / Módulo      | Responsabilidad                                                                 |
 | ------------------ | ------------------------------------------------------------------------------- |
-| **Playwright E2E** | Suite TypeScript usando Fixtures (`newContextAs`) para flujos multi-rol aisaldos. |
+| **Playwright E2E** | Suite TypeScript usando Fixtures (`newContextAs`) para flujos multi-rol aislados. |
 | **Plugins Locales**| Inyectan lógica en Moodle sin modificar el *core*. `focusguard` expone endpoints WS. `graceguard` altera la API calificador interna. |
 | **Scripts**        | Automatizan el Setup (`seed.sh`) y hacen sanity checks rápidos (`verify-env.sh`).|
 
