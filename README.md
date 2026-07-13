@@ -47,7 +47,7 @@ Requiere **Node ≥ 22.13**.
 
 ```bash
 # 1. Clonar el repositorio y entrar al directorio
-git clone <URL_DEL_REPOSITORIO> uGES_test2
+git clone https://github.com/DavidDevGt/uGES_test2.git
 cd uGES_test2
 
 # 2. Instalar dependencias de automatización (Playwright)
