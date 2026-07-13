@@ -7,6 +7,11 @@ define(['core/ajax', 'core/log'], function(Ajax, Log) {
     var attemptId = 0;
     var debounceTimer = null;
     var DEBOUNCE_MS = 1000;
+    // Navegar entre páginas del intento dispara visibilitychange→hidden al descargar
+    // el documento: sin este flag, cada "Next page" contaría como pérdida de foco
+    // (falso positivo — bug F19 encontrado por la suite E2E). beforeunload dispara
+    // ANTES que visibilitychange en la secuencia de unload.
+    var unloading = false;
 
     function reportBlur() {
         Ajax.call([{
@@ -22,7 +27,7 @@ define(['core/ajax', 'core/log'], function(Ajax, Log) {
     }
 
     function onFocusLoss() {
-        if (debounceTimer !== null) {
+        if (unloading || debounceTimer !== null) {
             return;
         }
         debounceTimer = setTimeout(function() {
@@ -37,6 +42,9 @@ define(['core/ajax', 'core/log'], function(Ajax, Log) {
          */
         init: function(id) {
             attemptId = id;
+            window.addEventListener('beforeunload', function() {
+                unloading = true;
+            });
             document.addEventListener('visibilitychange', function() {
                 if (document.hidden) {
                     onFocusLoss();

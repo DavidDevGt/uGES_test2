@@ -13,6 +13,7 @@ define([], function() {
             var counts = JSON.parse(data.dataset.counts || '{}');
             var threshold = parseInt(data.dataset.threshold || '3', 10);
 
+            var decorated = {}; // 1 badge por intento: cada fila tiene 2+ links de review (nombre y nota)
             var links = document.querySelectorAll('a[href*="review.php?attempt="]');
             links.forEach(function(link) {
                 var match = link.href.match(/attempt=(\d+)/);
@@ -20,6 +21,10 @@ define([], function() {
                     return;
                 }
                 var attemptId = match[1];
+                if (decorated[attemptId]) {
+                    return;
+                }
+                decorated[attemptId] = true;
                 // 0 explícito para intentos sin registros: "muestra 0, sin marca" (SPECS §2.3).
                 var count = Object.prototype.hasOwnProperty.call(counts, attemptId) ? counts[attemptId] : 0;
 

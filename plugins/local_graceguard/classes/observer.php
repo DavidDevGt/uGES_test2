@@ -37,8 +37,23 @@ class observer {
             return;
         }
 
-        $elapsed = (int) $attempt->timefinish - (int) $attempt->timestart;
-        if ($elapsed <= (int) $quiz->timelimit + self::TOLERANCE_SECS) {
+        // HALLAZGO F20 (el candidato #1 que SPECS §3.2 predijo): la señal temporal
+        // timefinish - timestart NO distingue confiablemente el envío en gracia.
+        // Un envío en gracia inmediato mide timelimit+1 (latencia del auto-redirect)
+        // y un envío normal procesado lento puede medir timelimit+2. La señal FIABLE
+        // es la máquina de estados: si el intento pasó por 'overdue', Moodle emitió
+        // \mod_quiz\event\attempt_becameoverdue (persistido en el log store estándar).
+        if ($DB->get_manager()->table_exists('logstore_standard_log')) {
+            $wasoverdue = $DB->record_exists('logstore_standard_log', [
+                'eventname' => '\mod_quiz\event\attempt_becameoverdue',
+                'objectid'  => $attempt->id,
+            ]);
+        } else {
+            // Fallback si el log store está deshabilitado: delta temporal estricto.
+            $elapsed = (int) $attempt->timefinish - (int) $attempt->timestart;
+            $wasoverdue = $elapsed > (int) $quiz->timelimit + self::TOLERANCE_SECS;
+        }
+        if (!$wasoverdue) {
             return; // Enviado dentro del tiempo normal: intacto (SPECS §3.3).
         }
 
@@ -92,4 +107,5 @@ class observer {
             $transaction->rollback($e);
         }
     }
+
 }
