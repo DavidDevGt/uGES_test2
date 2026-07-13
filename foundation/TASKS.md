@@ -39,13 +39,13 @@
 - `[x]` `.github/dependabot.yml` — docker (majors/minors de Moodle excluidos por D5), actions, npm
 
 ## Entrega (logística — del correo y enunciado)
-- `[ ]` Justificar en README la desviación de imagen Docker (enunciado dice "Bitnami o la oficial"; ver F1)
-- `[ ]` `docs/decisions-and-ai-direction.md` CORTO (1–2 págs) — el entregable 5; AI_USAGE.md y findings.md son anexos
-- `[ ]` En `docs/40h-to-2h.md` citar que los cambios 1 y 3 fueron excluidos por el equipo (correo 2026-07-10)
-- `[ ]` Push a GitHub privado + dar acceso al equipo GES + correo de envío (antes del mar 14 mediodía)
+- `[x]` Justificar en README la desviación de imagen Docker (enunciado dice "Bitnami o la oficial"; ver F1)
+- `[x]` `docs/decisions-and-ai-direction.md` CORTO (1–2 págs) — el entregable 5; AI_USAGE.md y findings.md son anexos
+- `[x]` En `docs/40h-to-2h.md` citar que los cambios 1 y 3 fueron excluidos por el equipo (correo 2026-07-10)
+- `[ ]` Push a GitHub privado + dar acceso al equipo GES + correo de envío (antes del mar 14 mediodía) — manual
 
 ## Documentación
-- `[ ]` Redactar `docs/40h-to-2h.md`
-- `[ ]` Redactar `docs/coverage-report.md`
-- `[ ]` Documentar decisiones y dirección de IA
-- `[ ]` Crear walkthrough.md final
+- `[x]` Redactar `docs/40h-to-2h.md`
+- `[x]` Redactar `docs/coverage-report.md`
+- `[x]` Documentar decisiones y dirección de IA (`docs/decisions-and-ai-direction.md`)
+- `[x]` Crear `docs/walkthrough.md` final

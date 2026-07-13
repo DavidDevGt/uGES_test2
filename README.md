@@ -88,7 +88,7 @@ Para optimizar el tiempo de corrida, los tests nunca hacen login mediante la int
 
 ```
 [ Proyecto: setup ]
-  └─ Inicia sesión (1 vez) por cada rol: Admin, Teacher, Student1, Student2
+  └─ Inicia sesión (1 vez) por cada rol: Admin, Teacher, Teacher2, Student1, Student2, Student3
        └─ Guarda las cookies de sesión en `e2e/.auth/*.json`
 
 [ Proyecto: core / timed ]
@@ -96,10 +96,14 @@ Para optimizar el tiempo de corrida, los tests nunca hacen login mediante la int
        └─ Pruebas 100% enfocadas en la lógica de negocio, ejecutadas en paralelo
 ```
 
+> Teacher2 es un editor de gradebook dedicado: el "Edit mode" de Moodle es una preferencia de
+> servidor por-usuario, así que separar el rol escritor del lector evita colisiones en paralelo
+> (hallazgo F21). Student3 da un par de aislamiento exclusivo al spec del Cambio 2.
+
 ## 🧪 Testing
 
-- **Smoke & Integración Rápida** (`verify-env.sh`) — 17 aserciones Bash/SQL ultrarrápidas (1.5s) que validan BD, configuraciones, usuarios y compilación de plugins sin levantar un navegador.
-- **E2E Visual** (`Playwright`) — Cubre los flujos críticos funcionales de la toma y calificación de exámenes. Fallos capturan **Screenshot**, **Video** y **DOM Trace**.
+- **Smoke & Integración Rápida** (`verify-env.sh`) — 22 aserciones Bash/SQL que validan BD, configuraciones, usuarios y plugins instalados sin levantar un navegador (fail-fast previo a la suite).
+- **E2E** (`Playwright`) — **36 tests** que cubren los **12 flujos del scope + Cambios 2 y 4** de punta a punta, repetibles (2 corridas consecutivas verdes). Fallos capturan **Screenshot**, **Video** y **DOM Trace**. Cobertura detallada en [`docs/coverage-report.md`](docs/coverage-report.md).
 - **Análisis Estático** — TypeScript check (`tsc`), PHP Lint (`php -l`), ShellCheck y Actionlint (`ci.yml`).
 
 ## 📦 CI/CD
@@ -113,11 +117,16 @@ El repositorio cuenta con dos flujos críticos definidos en [`.github/workflows/
 
 Todo el desarrollo se basa en decisiones metódicamente documentadas, enfocándose en un robusto control y prevención de regresiones:
 
-- **Workarounds de Moodle 4.5 Documentados** — En la bitácora `docs/findings.md` se detallan 13 hallazgos críticos de Moodle, incluyendo el uso de `user-menu-toggle`, los problemas de caché de JS asíncrono, y las caídas por bloqueo transaccional de bases de datos.
+- **Imagen Docker (desviación declarada)** — El enunciado sugiere "Bitnami o la oficial". Bitnami fue retirada del catálogo gratuito de Docker Hub (2025) y `moodlehq/moodle-php-apache` no contiene Moodle; se usa `erseco/alpine-moodle` (auto-instala, trae `moosh`). Justificación completa: hallazgo F1 en [`docs/findings.md`](docs/findings.md).
+- **Workarounds de Moodle 4.5 Documentados** — La bitácora [`docs/findings.md`](docs/findings.md) detalla **23 hallazgos** de discrepancia entre lo documentado y el comportamiento real: dos bugs de los cambios cazados por la propia suite (F19, F20), el borrado de password por `togglesensitive` async (F13), y la carrera del "Edit mode" del gradebook en paralelo (F21), entre otros.
 - **Rendimiento de CI** — En lugar de reinstalar Moodle en múltiples jobs, todo ocurre en una máquina optimizada; un solo levantamiento de imagen procesa todo el stack.
 
-### 📚 Documentación adicional
-- **[AI Usage Log (`AI_USAGE.md`)](AI_USAGE.md)** — Reporte exhaustivo de participación de la IA (qué hizo y cómo se mitigaron sus errores).
+### 📚 Documentación de entrega
+- **[Walkthrough (`docs/walkthrough.md`)](docs/walkthrough.md)** — Recorrido guiado de la solución en 10 minutos.
+- **[Cuenta 40h → 2h (`docs/40h-to-2h.md`)](docs/40h-to-2h.md)** — Por qué la validación manual mensual baja a ~2 h, demostrado con los cambios.
+- **[Reporte de cobertura (`docs/coverage-report.md`)](docs/coverage-report.md)** — Mapa flujo → spec → assert, con exclusiones justificadas.
+- **[Decisiones y dirección de IA (`docs/decisions-and-ai-direction.md`)](docs/decisions-and-ai-direction.md)** — El documento corto (entregable 5).
+- **[AI Usage Log (`AI_USAGE.md`)](AI_USAGE.md)** y **[Hallazgos (`docs/findings.md`)](docs/findings.md)** — Anexos exhaustivos.
 - **[Especificaciones (`SPECS.md`)](foundation/SPECS.md)** — Las reglas de negocio subyacentes.
 
 ## 📄 License
