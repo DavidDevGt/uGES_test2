@@ -13,7 +13,7 @@
 - `[x]` Crear módulo AMD JS para capturar `blur` y `visibilitychange` (debounce 1s, fallo no bloquea)
 - `[x]` Hooks API (`db/hooks.php` + `hook_callbacks`) para inyectar JS en la página del intento
 - `[x]` Badge en la vista de reportes: data-attribute JSON + `report.js` + `styles.css` (alerta si >3)
-- `[ ]` Verificación E2E funcional (spec 09)
+- `[x]` Verificación E2E funcional (spec 09) — verde; cazó y corrigió F19 (navegación contaba como blur)
 
 ## Cambio 4: `local_graceguard`
 - `[x]` Estructura básica del plugin (`version.php`, `lang/en/...`)
@@ -22,15 +22,15 @@
 - `[x]` Event Observer para `\mod_quiz\event\attempt_submitted` (internal=false, doble señal de detección)
 - `[x]` Lógica de penalización + log de auditoría + regrade vía `grade_calculator` (fallback legacy documentado)
 - `[x]` Mensaje al estudiante en la revisión vía Hooks API (`#local-graceguard-notice`)
-- `[ ]` Verificación E2E funcional (spec 10, con timer real)
+- `[x]` Verificación E2E funcional (spec 10, con timer real) — 11/11; detección F20 (evento overdue) y limitación F23 documentada
 
 ## Suite QA (Playwright)
 - `[x]` Inicializar package.json e instalar Playwright (pnpm 11.9, @playwright/test 1.61.1, TS 7.0.2)
 - `[x]` Crear `playwright.config.ts` (projects setup/core/timed) y `auth.setup.ts` (storageState por rol)
 - `[x]` Configurar fixtures y manejo de roles (`roles.ts`, `testdata.ts`) — smoke 7/7 verde contra el stack vivo
 - `[x]` Implementar Page Objects (`pages/*.ts`) — BasePage (pending_js + navegación por nombre), QuizSettings, QuizAttempt, QuestionBank, Grading, AttemptsReport, Gradebook; smoke 8/8
-- `[/]` Escribir Specs funcionales (flujos 1 al 12) — 04 ✅ verde y repetible (flujos 6+8+9: nota exacta 4.00/7.00 en revisión y gradebook); pendientes 01, 02, 03, 05, 07, 08
-- `[ ]` Escribir Specs para Cambio 2 y Cambio 4
+- `[x]` Escribir Specs funcionales (flujos 1 al 12) — 8 spec files, TODOS verdes individualmente: 01 (flujos 1+4), 02 (2+3), 03 (5), 04 (6+8+9), 05 (7, timer real), 06 (10), 07 (11), 08 (12)
+- `[x]` Escribir Specs para Cambio 2 y Cambio 4 — 09 ✅ (6 criterios §2.3 + bug F19 cazado y corregido) y 10 ✅ 11/11 (6 criterios §3.3 + hallazgos F20/F23)
 - `[/]` Configurar CI (GitHub Actions) — pipeline activo: estático (shellcheck, php -l, compose config, gitleaks) + smoke del entorno (seed x2 + 13 asserts); el job e2e se auto-activa cuando exista la suite
 
 ## Validación automatizada (base de calidad)

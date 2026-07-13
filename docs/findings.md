@@ -49,6 +49,43 @@
 - **Real:** el id clásico del menú de usuario cambió; en 4.5 el toggle es `a#user-menu-toggle` (verificado inspeccionando el DOM vivo).
 - **Resolución:** selector actualizado en `LoginPage.ts`, encapsulado en el Page Object con nota.
 
+## 2026-07-12/13 — Escritura de los specs 01–03, 05–10 (flujos restantes + Cambios)
+
+### F19 — BUG DEL PLUGIN cazado por la suite: navegar entre páginas contaba como pérdida de foco
+- **Real:** cada cambio de página del intento dispara `visibilitychange→hidden` al descargar el documento; `local_focusguard` lo contaba — un estudiante real acumularía un falso positivo por CADA "Next page", arruinando la señal de integridad. Detectado porque el intento "limpio" del spec 09 registró exactamente 3 blurs = sus 3 navegaciones.
+- **Fix (plugin):** flag `unloading` seteado en `beforeunload` (dispara antes que `visibilitychange` en el unload) que suprime el conteo durante navegación; los cambios de pestaña/ventana reales no pasan por beforeunload y siguen contando.
+- **Valor:** el argumento central del enunciado, demostrado — la suite encontró un bug real del cambio del mes.
+
+### F20 — La señal temporal NO distingue el envío en gracia (el candidato #1 de SPECS §3.2, confirmado)
+- **Real:** un envío en gracia inmediato mide `timelimit+1s` (latencia del auto-redirect) y un envío normal procesado lento puede medir `timelimit+2s` — la tolerancia que protege a uno traga al otro. El observer con delta temporal dejó sin penalizar un envío en gracia real.
+- **Fix (plugin):** señal de máquina de estados — si el intento pasó por `overdue`, existe `\mod_quiz\event\attempt_becameoverdue` en `logstore_standard_log`; el observer consulta ese evento (fallback temporal solo si el log store está deshabilitado).
+
+### F23 — El regrade nativo BORRA la penalización de gracia (limitación real, con la carrera demostrada)
+- **Real (capa 1):** "Regrade" recalcula `sumgrades` desde el question engine, que no sabe de la penalización — el intento penalizado (0.75) volvió a 1.00 tras recalificar. No se duplica (criterio §3.3 ✓); se PIERDE, con el aviso del desglose aún visible (lee del log).
+- **Real (capa 2 — el intento de fix reveló más):** se implementó un observer sobre `\mod_quiz\event\attempt_regraded` para re-aplicar el % del log… y la BD demostró la carrera: **ese evento dispara ANTES de que `quiz_update_sumgrades` persista la base limpia** — el observer leyó la base vieja (0.75→0.5625) y el regrade lo aplastó después con 1.00. Cualquier re-aplicación síncrona pierde.
+- **Decisión:** limitación documentada y declarada (el criterio literal — no duplicar — se cumple; el log auditable conserva el desglose original). La solución correcta es asíncrona (ad-hoc task post-regrade u observer de `\core\event\user_graded` con guarda de recursión) — **candidato natural a extensión en la sesión en vivo**.
+- **Valor:** junto con F19, segunda demostración empírica de la suite encontrando comportamiento real no evidente de los cambios del mes.
+
+### F21 — "Edit mode" es una preferencia de USUARIO en el servidor y contamina contextos paralelos
+- **Real:** activarlo en un contexto de Playwright (spec 07, single view) lo activó para TODOS los contextos del teacher — y el grader report en edición renderiza inputs sin texto: 3 asserts de specs distintos fallaron con la BD correcta.
+- **Fix capa 1 (suite):** `GradebookPage.open()` fuerza Edit mode OFF antes de leer.
+- **Fix capa 2 (aislamiento, revelado solo en la suite completa):** aun con el forzado, en paralelo el spec-escritor (07, necesita Edit ON) y los spec-lectores (06/10, fuerzan OFF) se pisaban la MISMA preferencia de servidor de `teacher`, colgando 07 de forma reproducible. Solución alineada con la matriz C2: un usuario `teacher2` dedicado a la edición del gradebook — lector y escritor nunca comparten la preferencia. Solo lo detecta la suite COMPLETA (los specs aislados pasaban) — exactamente el tipo de bug que la doble-corrida de validación existe para atrapar.
+- **Fix capa 3 (fiabilidad del toggle):** el toggle de Edit mode es un form auto-submit; `waitForLoadState` corría una carrera con el inicio de la navegación. Se reemplazó por una aserción auto-reintentante sobre el estado resultante del checkbox (`toBeChecked({checked})`).
+
+### F22 — La columna "after the quiz is closed" de review options se descarta sin timeclose
+- **Real:** el mform la deshabilita (disabledIf) sin fecha de cierre y los checkboxes deshabilitados no se envían — el valor revierte al default silenciosamente al guardar.
+- **Fix (spec 01):** fijar `timeclose` futuro al crear; el flujo 4 luego lo mueve al pasado.
+
+### F18b — Inventario adicional de Boost 4.5 (verificado en DOM vivo)
+- Chooser de tipos de pregunta = diálogo **YUI** (`.moodle-dialogue-wrap`, sin `role=dialog`); radios `#item_qtype_<tipo>`.
+- Items del menú "Add" del editor = `role=menuitem`; el trigger es `a.dropdown-toggle` (hay "Add" ocultos que rompen `.last()` sin `:visible`).
+- Toggle "Edit mode" = `role=checkbox`, no `switch`.
+- Passwords (settings Y pre-flight del intento) = widgets **passwordunmask**: input `d-none` hasta el pencil `[data-passwordunmask="edit"]`; el pre-flight rechazado re-enmascara.
+- El modal "from question bank" filtra por la categoría default del contexto — preguntas de otras categorías no aparecen sin cambiar el filtro.
+- Regrade: botón "Regrade attempts..." → modal radios "All/Selected attempts" → "Regrade now".
+- Quiz fuera de ventana: el aviso es "**Opens:** <fecha>".
+- "Unable to acquire a lock for caching": transitorio de Moodle bajo carga paralela — la clase de fallo que `retries=1` en CI absorbe por diseño.
+
 ## 2026-07-12 — Escritura del spec 04 (flujos 6, 8, 9)
 
 ### F14 — La pregunta aleatoria excluye las preguntas ya usadas en slots fijos del mismo quiz
