@@ -13,6 +13,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: CI,
   retries: CI ? 1 : 0, // retry=1 solo en CI, con trace para diagnosticar (SPECS §4.2)
+  workers: 3,
   reporter: [['list'], ['html', { open: 'never' }]],
   timeout: 60_000,
   expect: { timeout: 10_000 }, // Moodle bajo Docker no es instantáneo; web-first assertions absorben la latencia
