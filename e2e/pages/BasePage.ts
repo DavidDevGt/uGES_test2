@@ -67,13 +67,9 @@ export class BasePage {
   async setEditMode(on: boolean): Promise<void> {
     const toggleLocator = this.page.locator('.editmode-switch-form input[type="checkbox"]');
     
-    try {
-      // Esperar a que el toggle de edición exista en el DOM.
-      // En modo headed o bajo carga, Moodle puede demorar en inyectarlo.
-      await toggleLocator.waitFor({ state: 'attached', timeout: 5000 });
-    } catch (e) {
-      return; // Si no existe el toggle, retornamos silenciosamente (ej. sin permisos)
-    }
+    // Esperar a que el toggle de edición exista en el DOM.
+    // En modo headed o bajo carga, Moodle puede demorar en inyectarlo.
+    await toggleLocator.waitFor({ state: 'attached', timeout: 30000 });
 
     const isChecked = await toggleLocator.isChecked();
     if (isChecked === on) {

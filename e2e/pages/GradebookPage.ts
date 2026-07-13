@@ -14,11 +14,11 @@ export class GradebookPage extends BasePage {
 
   async open(courseFullname: string): Promise<void> {
     await this.openCourse(courseFullname);
+    // Lectura SIEMPRE sin edición: los asserts leen texto, no inputs.
+    await this.setEditMode(false);
     const courseId = this.cmidFromUrl(); // en course/view.php?id=N, id ES el courseid
     await this.page.goto(`/grade/report/grader/index.php?id=${courseId}`);
     await this.waitForMoodleReady();
-    // Lectura SIEMPRE sin edición: los asserts leen texto, no inputs.
-    await this.setEditMode(false);
   }
 
   /** Fila del grader report para un estudiante (tabla #user-grades, verificada en 4.5). */
@@ -41,13 +41,13 @@ export class GradebookPage extends BasePage {
    */
   async openSingleViewForUser(courseFullname: string, userId: number): Promise<void> {
     await this.openCourse(courseFullname);
+    // El single view requiere Edit mode para los inputs override_*/finalgrade_*.
+    // Activamos el modo en la vista del curso donde el toggle siempre está presente de forma segura.
+    await this.setEditMode(true);
+    
     const courseId = this.cmidFromUrl();
     await this.page.goto(`/grade/report/singleview/index.php?id=${courseId}&item=user&itemid=${userId}`);
     await this.waitForMoodleReady();
-
-    // El single view es de SOLO LECTURA sin Edit mode (verificado en DOM vivo):
-    // los inputs override_*/finalgrade_* solo existen en modo edición.
-    await this.setEditMode(true);
   }
 
   /** Fila de un grade item dentro del single view. */
@@ -65,12 +65,21 @@ export class GradebookPage extends BasePage {
     return this.singleViewRow(itemName).locator('input[name^="finalgrade_"]');
   }
 
-  /** Guarda el single view (maneja la pantalla intermedia de confirmación si aparece). */
+  /** Guarda los cambios en Single View y maneja la redirección/confirmación. */
   async saveSingleView(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Save' }).click();
+    const saveBtn = this.page.getByRole('button', { name: 'Save' });
+    // Single View hace un POST tradicional. Hay que esperar la recarga de página.
+    await Promise.all([
+      this.page.waitForNavigation({ waitUntil: 'load' }),
+      saveBtn.click()
+    ]);
+
     const cont = this.page.getByRole('button', { name: 'Continue' });
-    if (await cont.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true, () => false)) {
-      await cont.click();
+    if (await cont.isVisible()) {
+      await Promise.all([
+        this.page.waitForNavigation({ waitUntil: 'load' }),
+        cont.click()
+      ]);
     }
     await this.waitForMoodleReady();
   }
