@@ -66,6 +66,8 @@ test.describe('flujo 11: overrides de nota y reportes del examen', () => {
       await gradebook.openSingleViewForUser(COURSE, userId);
       await gradebook.overrideCheckbox(QUIZ).check();
       await gradebook.gradeInput(QUIZ).fill(OVERRIDE_GRADE);
+      await gradebook.gradeInput(QUIZ).press('Enter');
+      await gradebook.waitForMoodleReady(); // Esperar que el guardado AJAX finalice
       await gradebook.saveSingleView();
 
       // El grader report refleja la nota sobreescrita.
@@ -75,6 +77,7 @@ test.describe('flujo 11: overrides de nota y reportes del examen', () => {
       // Revertir (auto-limpieza para repetibilidad).
       await gradebook.openSingleViewForUser(COURSE, userId);
       await gradebook.overrideCheckbox(QUIZ).uncheck();
+      await gradebook.waitForMoodleReady();
       await gradebook.saveSingleView();
 
       await gradebook.open(COURSE);

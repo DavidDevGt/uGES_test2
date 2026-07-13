@@ -65,21 +65,27 @@ export class BasePage {
    * paralela de tests.
    */
   async setEditMode(on: boolean): Promise<void> {
-    const isChecked = await this.page.evaluate(() => {
-      const toggle = document.querySelector('.editmode-switch-form input[type="checkbox"]') as HTMLInputElement | null;
-      return toggle ? toggle.checked : null;
-    });
+    const toggleLocator = this.page.locator('.editmode-switch-form input[type="checkbox"]');
+    
+    try {
+      // Esperar a que el toggle de edición exista en el DOM.
+      // En modo headed o bajo carga, Moodle puede demorar en inyectarlo.
+      await toggleLocator.waitFor({ state: 'attached', timeout: 5000 });
+    } catch (e) {
+      return; // Si no existe el toggle, retornamos silenciosamente (ej. sin permisos)
+    }
 
-    if (isChecked === null || isChecked === on) {
+    const isChecked = await toggleLocator.isChecked();
+    if (isChecked === on) {
       return;
     }
 
-    await this.page.evaluate(async (setmode) => {
+    const contextId = await toggleLocator.evaluate((el: HTMLInputElement) => el.dataset.context);
+
+    await this.page.evaluate(async ({ context, setmode }) => {
       return new Promise<void>((resolve, reject) => {
         // @ts-ignore
         require(['core/ajax'], function (ajax) {
-          const toggle = document.querySelector('.editmode-switch-form input[type="checkbox"]') as HTMLInputElement;
-          const context = toggle ? toggle.dataset.context : undefined;
           if (!context) {
             reject(new Error('No context found for edit mode toggle'));
             return;
@@ -90,7 +96,7 @@ export class BasePage {
           }])[0].then(() => resolve()).catch(reject);
         });
       });
-    }, on);
+    }, { context: contextId, setmode: on });
 
     await this.page.reload();
     await this.waitForMoodleReady();

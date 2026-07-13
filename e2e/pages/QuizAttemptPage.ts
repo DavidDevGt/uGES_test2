@@ -60,9 +60,15 @@ export class QuizAttemptPage extends BasePage {
     const wrapper = this.page.locator(
       'div[data-passwordunmask="wrapper"][data-passwordunmaskid="id_quizpassword"]:visible',
     );
-    await wrapper.locator('a[data-passwordunmask="edit"]').click();
+    const editBtn = wrapper.locator('a[data-passwordunmask="edit"]');
     const input = wrapper.locator('#id_quizpassword');
+    
     await expect(async () => {
+      // Si el input está oculto, intentar revelarlo. 
+      // Al estar dentro de toPass, maneja el caso de que el JS de Moodle aún no estuviera listo en el primer click.
+      if (!(await input.isVisible())) {
+        await editBtn.click();
+      }
       await input.fill(password);
       await expect(input).toHaveValue(password);
     }).toPass({ timeout: 15_000 });
