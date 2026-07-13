@@ -1,4 +1,4 @@
-import { type Locator, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 /**
@@ -17,7 +17,7 @@ export class QuizAttemptPage extends BasePage {
   constructor(page: Page) {
     super(page);
     this.attemptButton = page.getByRole('button', {
-      name: /Attempt quiz|Re-attempt quiz|Continue your attempt/,
+      name: /Attempt quiz|Re-attempt quiz|Continue your attempt|Preview quiz/,
     });
     this.timer = page.locator('#quiz-time-left');
     this.submitAllButton = page.getByRole('button', { name: 'Submit all and finish' });
@@ -43,11 +43,29 @@ export class QuizAttemptPage extends BasePage {
     );
     if (appeared) {
       if (options.password !== undefined) {
-        await this.page.locator('#id_quizpassword').fill(options.password);
+        await this.fillPreflightPassword(options.password);
       }
       await start.click();
     }
     await this.waitForMoodleReady();
+  }
+
+  /**
+   * Llena el password del pre-flight. Es un widget passwordunmask (DOM verificado:
+   * input d-none hasta clickear el pencil "Edit password") DENTRO de un modal —
+   * y la página puede tener varios dialogs visibles, así que se scopea por el
+   * wrapper del widget. Sin Enter: el submit lo hace el botón "Start attempt".
+   */
+  async fillPreflightPassword(password: string): Promise<void> {
+    const wrapper = this.page.locator(
+      'div[data-passwordunmask="wrapper"][data-passwordunmaskid="id_quizpassword"]:visible',
+    );
+    await wrapper.locator('a[data-passwordunmask="edit"]').click();
+    const input = wrapper.locator('#id_quizpassword');
+    await expect(async () => {
+      await input.fill(password);
+      await expect(input).toHaveValue(password);
+    }).toPass({ timeout: 15_000 });
   }
 
   // ── Respuestas por tipo de pregunta ────────────────────────────────────────
@@ -133,14 +151,22 @@ export class QuizAttemptPage extends BasePage {
 
   /** Va a la página de resumen del intento. */
   async finishAttempt(): Promise<void> {
+    // El link "Finish attempt..." vive en el block drawer (colapsado por defecto,
+    // F18); abrirlo lo hace clickeable desde cualquier página del intento.
+    await this.ensureNavPanelVisible();
     await this.page.getByRole('link', { name: /Finish attempt/ }).click();
     await this.waitForMoodleReady();
   }
 
-  /** En el resumen: envía todo, confirmando el modal. */
+  /** En el resumen: envía todo, confirmando el modal si aparece. */
   async submitAll(): Promise<void> {
     await this.submitAllButton.click();
-    await this.modal.getByRole('button', { name: 'Submit all and finish' }).click();
+    // En estado overdue (gracia) Moodle envía DIRECTO, sin modal de confirmación
+    // (verificado en spec 10); en el envío normal el modal sí aparece.
+    const confirm = this.modal.getByRole('button', { name: 'Submit all and finish' });
+    if (await confirm.waitFor({ state: 'visible', timeout: 5_000 }).then(() => true, () => false)) {
+      await confirm.click();
+    }
     await this.waitForMoodleReady();
   }
 

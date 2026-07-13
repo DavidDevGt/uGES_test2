@@ -7,11 +7,14 @@ import { BasePage } from './BasePage';
  * <textarea> planos — sin iframes de TinyMCE.
  */
 export class QuestionBankPage extends BasePage {
-  /** Abre el banco a nivel curso (More → Question bank). */
+  /**
+   * Abre el banco a nivel curso por URL directa (question/edit.php?courseid=N) —
+   * mismo patrón que gradebook/reportes: los menús ("More") cambian entre versiones.
+   */
   async openFromCourse(courseFullname: string): Promise<void> {
     await this.openCourse(courseFullname);
-    await this.page.getByRole('link', { name: 'More', exact: true }).click();
-    await this.page.getByRole('link', { name: 'Question bank' }).click();
+    const courseId = this.cmidFromUrl(); // en course/view.php?id=N, id ES el courseid
+    await this.page.goto(`/question/edit.php?courseid=${courseId}`);
     await this.waitForMoodleReady();
   }
 
@@ -20,11 +23,18 @@ export class QuestionBankPage extends BasePage {
     return this.page.locator('table#categoryquestions tr', { hasText: name });
   }
 
-  /** Abre el chooser y selecciona el tipo. Deja abierto el form de la pregunta. */
-  private async startCreation(qtypeLabel: string): Promise<void> {
+  /**
+   * Abre el chooser y selecciona el tipo por su id de qtype. Deja abierto el form.
+   * El chooser es un diálogo YUI (.moodle-dialogue-wrap, SIN role=dialog — DOM
+   * verificado): radios con id item_qtype_<tipo> y botón "Add".
+   */
+  private async startCreation(qtypeId: string): Promise<void> {
     await this.page.getByRole('button', { name: /Create a new question/ }).click();
-    await this.modal.getByRole('radio', { name: qtypeLabel, exact: true }).check();
-    await this.modal.getByRole('button', { name: 'Add' }).click();
+    const dialog = this.page
+      .locator('.moodle-dialogue-wrap', { hasText: 'Choose a question type' })
+      .last();
+    await dialog.locator(`#item_qtype_${qtypeId}`).check();
+    await dialog.getByRole('button', { name: 'Add', exact: true }).click();
     await this.waitForMoodleReady();
   }
 
@@ -44,7 +54,7 @@ export class QuestionBankPage extends BasePage {
     correctChoice: string,
     wrongChoices: readonly string[],
   ): Promise<void> {
-    await this.startCreation('Multiple choice');
+    await this.startCreation('multichoice');
     await this.fillCommon(name, text);
     await this.page.locator('#id_answer_0').fill(correctChoice);
     await this.page.locator('#id_fraction_0').selectOption({ label: '100%' });
@@ -55,14 +65,14 @@ export class QuestionBankPage extends BasePage {
   }
 
   async createTrueFalse(name: string, text: string, correct: boolean): Promise<void> {
-    await this.startCreation('True/False');
+    await this.startCreation('truefalse');
     await this.fillCommon(name, text);
     await this.page.locator('#id_correctanswer').selectOption({ label: correct ? 'True' : 'False' });
     await this.save();
   }
 
   async createShortAnswer(name: string, text: string, answer: string): Promise<void> {
-    await this.startCreation('Short answer');
+    await this.startCreation('shortanswer');
     await this.fillCommon(name, text);
     await this.page.locator('#id_answer_0').fill(answer);
     await this.page.locator('#id_fraction_0').selectOption({ label: '100%' });
@@ -70,7 +80,7 @@ export class QuestionBankPage extends BasePage {
   }
 
   async createNumerical(name: string, text: string, answer: string): Promise<void> {
-    await this.startCreation('Numerical');
+    await this.startCreation('numerical');
     await this.fillCommon(name, text);
     await this.page.locator('#id_answer_0').fill(answer);
     await this.page.locator('#id_fraction_0').selectOption({ label: '100%' });
@@ -82,7 +92,7 @@ export class QuestionBankPage extends BasePage {
     text: string,
     pairs: ReadonlyArray<{ item: string; match: string }>,
   ): Promise<void> {
-    await this.startCreation('Matching');
+    await this.startCreation('match');
     await this.fillCommon(name, text);
     for (const [i, pair] of pairs.entries()) {
       await this.page.locator(`#id_subquestions_${i}`).fill(pair.item);
@@ -92,7 +102,7 @@ export class QuestionBankPage extends BasePage {
   }
 
   async createEssay(name: string, text: string): Promise<void> {
-    await this.startCreation('Essay');
+    await this.startCreation('essay');
     await this.fillCommon(name, text);
     await this.save();
   }

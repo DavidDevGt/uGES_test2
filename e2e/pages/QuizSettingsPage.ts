@@ -24,7 +24,8 @@ export class QuizSettingsPage extends BasePage {
   /** Crea un quiz nuevo en el curso vía UI (flujo 1). Deja abierto el form de settings. */
   async startQuizCreation(courseFullname: string): Promise<void> {
     await this.openCourse(courseFullname);
-    await this.page.getByRole('switch', { name: 'Edit mode' }).check();
+    // El toggle expone role checkbox (no switch) en Boost 4.5 — verificado en aria snapshot.
+    await this.page.getByRole('checkbox', { name: 'Edit mode' }).check();
     await this.waitForMoodleReady();
     await this.page.getByRole('button', { name: 'Add an activity or resource' }).last().click();
     // Chooser modal: el item de cada módulo es un link con el nombre del módulo.
@@ -32,18 +33,21 @@ export class QuizSettingsPage extends BasePage {
     await this.waitForMoodleReady();
   }
 
-  /** Abre el form de settings de un quiz existente (secondary nav → Settings). */
+  /** Abre el form de settings de un quiz existente (URL directa: el nav lo expone como menuitem, no link). */
   async openSettings(courseFullname: string, quizName: string): Promise<void> {
     await this.openQuiz(courseFullname, quizName);
-    await this.page.getByRole('link', { name: 'Settings', exact: true }).click();
+    const cmid = this.cmidFromUrl();
+    await this.page.goto(`/course/modedit.php?update=${cmid}&return=1`);
     await this.waitForMoodleReady();
   }
 
   /** Expande todas las secciones del mform (los campos colapsados no son interactuables). */
   async expandAll(): Promise<void> {
-    const expand = this.page.getByRole('link', { name: 'Expand all' });
-    if (await expand.isVisible()) {
-      await expand.click();
+    // El control real es a.collapseexpand cuyo estado vive en su clase 'collapsed'
+    // (el getByRole('Expand all') matchea items de dropdown ocultos — DOM verificado).
+    const toggle = this.page.locator('a.collapseexpand');
+    if ((await toggle.count()) > 0 && (((await toggle.getAttribute('class')) ?? '').includes('collapsed'))) {
+      await toggle.click();
     }
   }
 
@@ -83,8 +87,15 @@ export class QuizSettingsPage extends BasePage {
 
   /** Contraseña de acceso (flujo 12, "Extra restrictions on attempts"). */
   async setPassword(password: string): Promise<void> {
-    // El campo es "sensitive" (toggle de visibilidad): requiere unmask o fill directo.
-    await this.page.locator('#id_quizpassword').fill(password);
+    // Widget passwordunmask (DOM verificado): el input vive d-none hasta clickear
+    // el pencil "Edit password"; Enter persiste el valor en el widget.
+    const wrapper = this.page.locator(
+      'div[data-passwordunmask="wrapper"][data-passwordunmaskid="id_quizpassword"]',
+    );
+    await wrapper.locator('a[data-passwordunmask="edit"]').click();
+    const input = this.page.locator('#id_quizpassword');
+    await input.fill(password);
+    await input.press('Enter');
   }
 
   /**

@@ -29,13 +29,21 @@ export class AttemptsReportPage extends BasePage {
     return this.attemptRow(studentName).getByRole('link', { name: /Review attempt/ });
   }
 
-  /** Selecciona todos los intentos y dispara el regrade (flujo 10). */
-  async regradeAllAttempts(): Promise<void> {
-    await this.page.getByRole('checkbox', { name: /Select all/ }).first().check();
-    await this.page.getByRole('button', { name: /Regrade selected attempts/ }).click();
-    // Moodle muestra una página de progreso y un botón Continue al terminar.
+  /**
+   * Recalifica SOLO el intento de un estudiante (flujo 10). Nunca "regrade all":
+   * quiz-general es compartido y un regrade global tocaría intentos de otros
+   * specs corriendo en paralelo (matriz de aislamiento C2).
+   */
+  async regradeAttemptOf(studentName: string): Promise<void> {
+    // Flujo real de 4.5 (verificado en DOM vivo): checkbox de la fila →
+    // botón "Regrade attempts..." → modal con radios → "Regrade now".
+    await this.attemptRow(studentName).locator('input[name="attemptid[]"]').check();
+    await this.page.locator('input[type="button"][value^="Regrade attempts"]').click();
+    await this.modal.getByRole('radio', { name: 'Selected attempts' }).check();
+    await this.modal.getByRole('button', { name: 'Regrade now' }).click();
+
     const cont = this.page.getByRole('button', { name: 'Continue' });
-    if (await cont.waitFor({ state: 'visible', timeout: 15_000 }).then(() => true, () => false)) {
+    if (await cont.waitFor({ state: 'visible', timeout: 30_000 }).then(() => true, () => false)) {
       await cont.click();
     }
     await this.waitForMoodleReady();

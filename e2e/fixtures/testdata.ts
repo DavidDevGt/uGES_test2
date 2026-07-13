@@ -22,6 +22,12 @@ export const TESTDATA = {
       gracePeriodSecs: 120, // holgado para runners de CI (auditoría C5)
       attempts: 2,
     },
+    autosubmit: {
+      name: 'quiz-autosubmit',
+      slots: 2, // SEED-MC-01 + SEED-TF-01
+      maxGrade: 2,
+      timeLimitSecs: 60, // flujo 7: auto-envío al expirar (overduehandling=autosubmit)
+    },
   },
   /**
    * Matriz de aislamiento (auditoría C2): cada spec que CONSUME intentos usa un par
@@ -33,7 +39,9 @@ export const TESTDATA = {
   attemptPairs: {
     studentFlows: { quiz: 'quiz-general', user: 'student1' }, // spec 04 (flujos 6, 8, 9)
     grading: { quiz: 'quiz-general', user: 'student2' }, // spec 06 (flujo 10)
-    timer: { quiz: 'quiz-timed', user: 'student1' }, // spec 05 (flujo 7 — proyecto timed, serial)
+    focusguard: { quiz: 'quiz-general', user: 'student3' }, // spec 09 (Cambio 2)
+    timer: { quiz: 'quiz-autosubmit', user: 'student1' }, // spec 05 (flujo 7 — proyecto timed)
+    reports: { quiz: 'quiz-autosubmit', user: 'student2' }, // spec 07 (flujo 11: override + reportes)
     gracePenalty: { quiz: 'quiz-timed', user: 'student2' }, // spec 10 (Cambio 4 — proyecto timed)
   },
   questions: {
