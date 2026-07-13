@@ -14,7 +14,7 @@
     "test:ui": "playwright test -c e2e --ui",
     "test:debug": "playwright test -c e2e --debug",
     "test:report": "playwright show-report",
-    "test:ci": "playwright test -c e2e --reporter=html,github",
+    "test:ci": "playwright test -c e2e --workers=3 --reporter=html,github",
     "install:browsers": "playwright install --with-deps chromium",
     "install:browsers:all": "playwright install --with-deps",
     "lint": "tsc --noEmit"
