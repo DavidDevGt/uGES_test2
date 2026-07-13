@@ -58,10 +58,9 @@ test.describe('flujo 12: restricciones de acceso al examen', () => {
       ).toBeVisible();
       expect(page.url()).not.toContain('/mod/quiz/attempt.php');
 
-      // Con la contraseña correcta: el intento inicia y la pregunta es visible.
-      await attempt.fillPreflightPassword(PASSWORD);
-      await page.getByRole('button', { name: 'Start attempt' }).click();
-      await attempt.waitForMoodleReady();
+      // Con la contraseña correcta: llenar + arrancar verificando por outcome
+      // (reintenta el par si el widget passwordunmask pierde la carrera de render).
+      await attempt.startAttemptWithPassword(PASSWORD);
       await expect(page).toHaveURL(/\/mod\/quiz\/attempt\.php/);
       await expect(attempt.question()).toBeVisible();
 

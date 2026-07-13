@@ -43,7 +43,9 @@ export class QuizAttemptPage extends BasePage {
     );
     if (appeared) {
       if (options.password !== undefined) {
-        await this.fillPreflightPassword(options.password);
+        // Con contraseña: llenar + arrancar verificando por outcome (ver método).
+        await this.startAttemptWithPassword(options.password);
+        return;
       }
       await start.click();
     }
@@ -51,27 +53,50 @@ export class QuizAttemptPage extends BasePage {
   }
 
   /**
-   * Llena el password del pre-flight. Es un widget passwordunmask (DOM verificado:
-   * input d-none hasta clickear el pencil "Edit password") DENTRO de un modal —
-   * y la página puede tener varios dialogs visibles, así que se scopea por el
-   * wrapper del widget. Sin Enter: el submit lo hace el botón "Start attempt".
+   * Teclea la contraseña en el widget passwordunmask del pre-flight (modal o página).
+   * El campo arranca en "Click to enter text": el LÁPIZ de edición
+   * (data-passwordunmask="edit") revela el input tecleable — NO el ojo "Reveal"
+   * (unmask), que solo alterna la máscara de un valor ya existente.
+   */
+  private async typePreflightPassword(password: string): Promise<void> {
+    const wrapper = this.page.locator(
+      '[data-passwordunmask="wrapper"][data-passwordunmaskid="id_quizpassword"]:visible',
+    );
+    const input = wrapper.locator('#id_quizpassword');
+    if (!(await input.isVisible().catch(() => false))) {
+      await wrapper.locator('a[data-passwordunmask="edit"]').click();
+      await input.waitFor({ state: 'visible', timeout: 5_000 });
+    }
+    await input.fill('');
+    // pressSequentially (carácter a carácter) es más estable que fill frente al
+    // re-render async del widget (F13).
+    await input.pressSequentially(password);
+  }
+
+  /**
+   * Llena la contraseña del pre-flight y arranca el intento, verificando por
+   * OUTCOME (el prompt desaparece = arrancó) en vez del valor intermedio del
+   * widget passwordunmask, que se re-enmascara async y hacía flaky el 2º llenado
+   * en CI (F13). Reintenta el par llenar+enviar hasta que el intento arranque.
+   */
+  async startAttemptWithPassword(password: string): Promise<void> {
+    const passwordInput = this.page.locator('#id_quizpassword');
+    await expect(async () => {
+      await this.typePreflightPassword(password);
+      await this.page.getByRole('button', { name: 'Start attempt' }).click();
+      await this.waitForMoodleReady();
+      // OUTCOME real: si el prompt de contraseña desapareció, la contraseña se tomó.
+      await expect(passwordInput).toHaveCount(0);
+    }).toPass({ timeout: 30_000 });
+  }
+
+  /**
+   * Llena la contraseña del pre-flight SIN enviar (para el caso de contraseña
+   * incorrecta, donde el caller asserta el rechazo). No verifica el valor: el
+   * outcome (rechazo) es el mismo si el valor cuaja o queda vacío.
    */
   async fillPreflightPassword(password: string): Promise<void> {
-    const wrapper = this.page.locator(
-      'div[data-passwordunmask="wrapper"][data-passwordunmaskid="id_quizpassword"]:visible',
-    );
-    const editBtn = wrapper.locator('a[data-passwordunmask="edit"]');
-    const input = wrapper.locator('#id_quizpassword');
-    
-    await expect(async () => {
-      // Si el input está oculto, intentar revelarlo. 
-      // Al estar dentro de toPass, maneja el caso de que el JS de Moodle aún no estuviera listo en el primer click.
-      if (!(await input.isVisible())) {
-        await editBtn.click();
-      }
-      await input.fill(password);
-      await expect(input).toHaveValue(password);
-    }).toPass({ timeout: 15_000 });
+    await this.typePreflightPassword(password);
   }
 
   // ── Respuestas por tipo de pregunta ────────────────────────────────────────
