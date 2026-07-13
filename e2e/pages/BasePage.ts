@@ -58,4 +58,41 @@ export class BasePage {
   get modal(): Locator {
     return this.page.getByRole('dialog');
   }
+
+  /**
+   * Cambia el Edit mode del usuario actual vía el endpoint interno de Moodle.
+   * Evita la contención del auto-submit del toggle en UI durante la ejecución
+   * paralela de tests.
+   */
+  async setEditMode(on: boolean): Promise<void> {
+    const isChecked = await this.page.evaluate(() => {
+      const toggle = document.querySelector('.editmode-switch-form input[type="checkbox"]') as HTMLInputElement | null;
+      return toggle ? toggle.checked : null;
+    });
+
+    if (isChecked === null || isChecked === on) {
+      return;
+    }
+
+    await this.page.evaluate(async (setmode) => {
+      return new Promise<void>((resolve, reject) => {
+        // @ts-ignore
+        require(['core/ajax'], function (ajax) {
+          const toggle = document.querySelector('.editmode-switch-form input[type="checkbox"]') as HTMLInputElement;
+          const context = toggle ? toggle.dataset.context : undefined;
+          if (!context) {
+            reject(new Error('No context found for edit mode toggle'));
+            return;
+          }
+          ajax.call([{
+            methodname: 'core_change_editmode',
+            args: { context, setmode }
+          }])[0].then(() => resolve()).catch(reject);
+        });
+      });
+    }, on);
+
+    await this.page.reload();
+    await this.waitForMoodleReady();
+  }
 }

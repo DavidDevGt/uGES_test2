@@ -11,30 +11,6 @@ export class GradebookPage extends BasePage {
    * No se clickea "Grades": la página del curso del profesor tiene DOS links con ese
    * nombre (navegación del curso y user menu) — strict mode los rechaza (verificado).
    */
-  /**
-   * Cambia el Edit mode del usuario actual. OJO: es una PREFERENCIA DE USUARIO
-   * en el servidor — activarla en un contexto contamina a todos los demás del
-   * mismo rol (causó 3 fallos fantasma: el grader en edición renderiza inputs
-   * sin texto y los toContainText no ven las notas).
-   */
-  private async setEditMode(on: boolean): Promise<void> {
-    const toggle = this.page.locator('.editmode-switch-form input[type="checkbox"]');
-    if ((await toggle.count()) === 0) {
-      return;
-    }
-    if ((await toggle.isChecked()) === on) {
-      return;
-    }
-    // El toggle es un form auto-submit → round-trip al servidor. waitForLoadState
-    // corría una carrera (podía ver el 'load' viejo antes de que la navegación
-    // empezara). La aserción auto-reintentante sobre el estado resultante espera
-    // de forma fiable a que la preferencia se persista y la página recargue.
-    await toggle.click();
-    await expect(this.page.locator('.editmode-switch-form input[type="checkbox"]')).toBeChecked({
-      checked: on,
-    });
-    await this.waitForMoodleReady();
-  }
 
   async open(courseFullname: string): Promise<void> {
     await this.openCourse(courseFullname);

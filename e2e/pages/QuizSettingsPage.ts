@@ -24,9 +24,7 @@ export class QuizSettingsPage extends BasePage {
   /** Crea un quiz nuevo en el curso vía UI (flujo 1). Deja abierto el form de settings. */
   async startQuizCreation(courseFullname: string): Promise<void> {
     await this.openCourse(courseFullname);
-    // El toggle expone role checkbox (no switch) en Boost 4.5 — verificado en aria snapshot.
-    await this.page.getByRole('checkbox', { name: 'Edit mode' }).check();
-    await this.waitForMoodleReady();
+    await this.setEditMode(true);
     await this.page.getByRole('button', { name: 'Add an activity or resource' }).last().click();
     // Chooser modal: el item de cada módulo es un link con el nombre del módulo.
     await this.modal.getByRole('link', { name: 'Quiz', exact: true }).click();
