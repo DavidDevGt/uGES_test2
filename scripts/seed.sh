@@ -86,8 +86,13 @@ fi
 
 echo "==> Usuarios"
 ensure_user "${TEACHER_USER:-teacher1}"  "${TEACHER_PASS:-Teacher123!}"  "Tina"  "Teacher"
+# teacher2: editor dedicado del gradebook (spec 07) — el "Edit mode" es una
+# preferencia de servidor por-usuario; separar lector/escritor evita la carrera F21.
+ensure_user "${TEACHER2_USER:-teacher2}" "${TEACHER2_PASS:-Teacher123!}" "Tomas" "TeacherTwo"
 ensure_user "${STUDENT1_USER:-student1}" "${STUDENT1_PASS:-Student123!}" "Sam"   "StudentOne"
 ensure_user "${STUDENT2_USER:-student2}" "${STUDENT2_PASS:-Student123!}" "Sara"  "StudentTwo"
+# student3: par exclusivo del spec 09 (Cambio 2) — matriz de aislamiento C2
+ensure_user "${STUDENT3_USER:-student3}" "${STUDENT3_PASS:-Student123!}" "Sofi"  "StudentThree"
 
 # Matriculaciones: las hace seed-course-setup.php vía API
 # (hallazgo 2026-07-11: moosh course-enrol es incompatible con Moodle 4.5 — pierde \$CFG->dirroot).
@@ -140,8 +145,10 @@ ensure_quiz() { # name section
 echo "==> Quizzes"
 ensure_quiz "quiz-general" 1
 ensure_quiz "quiz-timed" 1
+ensure_quiz "quiz-autosubmit" 1
 QUIZGEN=$(sql_value "SELECT id FROM mdl_quiz WHERE course=$COURSEID AND name='quiz-general'")
 QUIZTIMED=$(sql_value "SELECT id FROM mdl_quiz WHERE course=$COURSEID AND name='quiz-timed'")
+QUIZAUTO=$(sql_value "SELECT id FROM mdl_quiz WHERE course=$COURSEID AND name='quiz-autosubmit'")
 
 # quiz-timed: límite 2 min, gracia 2 min, 2 intentos, nota más alta (D4).
 # Gracia 120s (no el mínimo de 60s): la ventana de envío en gracia debe ser holgada
@@ -149,13 +156,18 @@ QUIZTIMED=$(sql_value "SELECT id FROM mdl_quiz WHERE course=$COURSEID AND name='
 moosh_ sql-run "UPDATE mdl_quiz SET timelimit=120, overduehandling='graceperiod', graceperiod=120, attempts=2, grademethod=1 WHERE id=$QUIZTIMED" >/dev/null
 # quiz-general: sin límite, intentos ilimitados
 moosh_ sql-run "UPDATE mdl_quiz SET timelimit=0, attempts=0 WHERE id=$QUIZGEN" >/dev/null
+# quiz-autosubmit: flujo 7 (auto-envío al expirar). Timer de 60s para specs rápidos.
+# Va en quiz separado: overduehandling es incompatible con el graceperiod que exige
+# el Cambio 4 en quiz-timed, y los specs no deben mutar settings compartidos en paralelo.
+moosh_ sql-run "UPDATE mdl_quiz SET timelimit=60, overduehandling='autosubmit', attempts=0, grademethod=1 WHERE id=$QUIZAUTO" >/dev/null
 
 echo "==> Matriculaciones + preguntas en quizzes (API Moodle)"
 docker compose cp scripts/seed-course-setup.php moodle:/tmp/seed-course-setup.php >/dev/null
 docker compose exec -T moodle php /tmp/seed-course-setup.php \
   --shortname="$COURSE_SHORTNAME" \
   --teacher="${TEACHER_USER:-teacher1}" \
-  --students="${STUDENT1_USER:-student1},${STUDENT2_USER:-student2}"
+  --teachers2="${TEACHER2_USER:-teacher2}" \
+  --students="${STUDENT1_USER:-student1},${STUDENT2_USER:-student2},${STUDENT3_USER:-student3}"
 
 echo "==> Endurecimiento para E2E: deshabilitar user tours (diálogos de onboarding rompen los tests)"
 moosh_ sql-run "UPDATE mdl_tool_usertours_tours SET enabled=0" >/dev/null
@@ -167,7 +179,8 @@ echo ""
 echo "=========== RESUMEN SEED ==========="
 echo " categoria   : $CATEGORY_NAME (id=$CATID)"
 echo " curso       : $COURSE_SHORTNAME (id=$COURSEID)"
-echo " usuarios    : ${TEACHER_USER:-teacher1}, ${STUDENT1_USER:-student1}, ${STUDENT2_USER:-student2}"
+echo " usuarios    : ${TEACHER_USER:-teacher1}, ${STUDENT1_USER:-student1}, ${STUDENT2_USER:-student2}, ${STUDENT3_USER:-student3}"
+echo " quiz-autosub: id=$QUIZAUTO (60s autosubmit, para flujo 7)"
 echo " preguntas   : $NQ con prefijo SEED-"
 echo " quiz-general: id=$QUIZGEN (sin límite)"
 echo " quiz-timed  : id=$QUIZTIMED (120s + gracia 120s, 2 intentos, nota más alta)"

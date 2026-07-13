@@ -26,7 +26,7 @@ COURSEID=$(sql_value "SELECT id FROM mdl_course WHERE shortname='$COURSE_SHORTNA
 # de usuario (la doc lo lista, el binario no). Se usa la API oficial
 # quiz_delete_attempt(): limpia question usages y recalcula grades. Sin || true:
 # un fallo del reset debe ser ruidoso, no dejar specs corriendo sobre estado sucio.
-for name in quiz-general quiz-timed; do
+for name in quiz-general quiz-timed quiz-autosubmit; do
   if [ -n "$QUIZ_FILTER" ] && [ "$name" != "$QUIZ_FILTER" ]; then continue; fi
   docker compose exec -T \
     -e RCOURSE="$COURSE_SHORTNAME" -e RQUIZ="$name" -e RUSER="$USER_FILTER" \
@@ -45,6 +45,10 @@ for name in quiz-general quiz-timed; do
       $n = 0;
       foreach ($DB->get_records("quiz_attempts", $params) as $attempt) {
           quiz_delete_attempt($attempt, $quiz);
+          // Las tablas de los plugins bajo prueba no las limpia quiz_delete_attempt:
+          // sin esto quedan conteos/logs huérfanos que contaminan corridas siguientes.
+          $DB->delete_records("local_focusguard_counts", ["attemptid" => $attempt->id]);
+          $DB->delete_records("local_graceguard_log", ["attemptid" => $attempt->id]);
           $n++;
       }
       echo getenv("RQUIZ") . ": $n intento(s) borrado(s)" . (getenv("RUSER") ? " de " . getenv("RUSER") : "") . "\n";

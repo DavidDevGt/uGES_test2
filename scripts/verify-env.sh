@@ -31,9 +31,9 @@ bash scripts/seed.sh >/dev/null
 
 echo "==> [3/4] Asserts de datos sembrados (SQL directo)"
 check "usuarios de prueba" \
-  "$(sql_num "SELECT COUNT(*) FROM mdl_user WHERE username IN ('teacher1','student1','student2') AND deleted=0")" "3"
+  "$(sql_num "SELECT COUNT(*) FROM mdl_user WHERE username IN ('teacher1','teacher2','student1','student2','student3') AND deleted=0")" "5"
 check "matriculados en QA-EXAMS-101" \
-  "$(sql_num "SELECT COUNT(DISTINCT ue.userid) FROM mdl_user_enrolments ue JOIN mdl_enrol e ON e.id=ue.enrolid JOIN mdl_course c ON c.id=e.courseid WHERE c.shortname='${COURSE_SHORTNAME:-QA-EXAMS-101}'")" "3"
+  "$(sql_num "SELECT COUNT(DISTINCT ue.userid) FROM mdl_user_enrolments ue JOIN mdl_enrol e ON e.id=ue.enrolid JOIN mdl_course c ON c.id=e.courseid WHERE c.shortname='${COURSE_SHORTNAME:-QA-EXAMS-101}'")" "5"
 check "preguntas SEED- (6 base + 2 reserva del pool aleatorio, sin duplicados)" \
   "$(sql_num "SELECT COUNT(*) FROM mdl_question WHERE name LIKE 'SEED-%'")" "8"
 check "slots de quiz-general (6 fijas + 1 aleatoria)" \
@@ -48,12 +48,18 @@ check "quiz-timed overduehandling" \
   "$(sql_str "SELECT overduehandling FROM mdl_quiz WHERE name='quiz-timed'")" "graceperiod"
 check "quiz-timed intentos permitidos" \
   "$(sql_num "SELECT attempts FROM mdl_quiz WHERE name='quiz-timed'")" "2"
+check "slots de quiz-autosubmit" \
+  "$(sql_num "SELECT COUNT(*) FROM mdl_quiz_slots s JOIN mdl_quiz q ON q.id=s.quizid WHERE q.name='quiz-autosubmit'")" "2"
+check "quiz-autosubmit timelimit" \
+  "$(sql_num "SELECT timelimit FROM mdl_quiz WHERE name='quiz-autosubmit'")" "60"
+check "quiz-autosubmit overduehandling" \
+  "$(sql_str "SELECT overduehandling FROM mdl_quiz WHERE name='quiz-autosubmit'")" "autosubmit"
 
 echo "==> [3b/4] Plugins locales instalados (Cambios 2 y 4)"
 check "version local_focusguard en BD" \
   "$(sql_str "SELECT value FROM mdl_config_plugins WHERE plugin='local_focusguard' AND name='version'")" "2026071100"
 check "version local_graceguard en BD" \
-  "$(sql_str "SELECT value FROM mdl_config_plugins WHERE plugin='local_graceguard' AND name='version'")" "2026071100"
+  "$(sql_str "SELECT value FROM mdl_config_plugins WHERE plugin='local_graceguard' AND name='version'")" "2026071301"
 check "tablas propias de los plugins" \
   "$(sql_num "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('mdl_local_focusguard_counts','mdl_local_graceguard_log')")" "2"
 check "web service report_blur registrado" \
@@ -71,8 +77,10 @@ login_check() { # username password
 }
 login_check "${MOODLE_ADMIN_USER:-admin}"   "${MOODLE_ADMIN_PASS:-Admin123!}"
 login_check "${TEACHER_USER:-teacher1}"     "${TEACHER_PASS:-Teacher123!}"
+login_check "${TEACHER2_USER:-teacher2}"    "${TEACHER2_PASS:-Teacher123!}"
 login_check "${STUDENT1_USER:-student1}"    "${STUDENT1_PASS:-Student123!}"
 login_check "${STUDENT2_USER:-student2}"    "${STUDENT2_PASS:-Student123!}"
+login_check "${STUDENT3_USER:-student3}"    "${STUDENT3_PASS:-Student123!}"
 
 echo ""
 echo "=========== VERIFY-ENV: $PASS ok, $FAIL fail ==========="

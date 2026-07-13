@@ -19,6 +19,7 @@ $CFG->noemailever = true;
 list($options, $unrecognized) = cli_get_params([
     'shortname' => 'QA-EXAMS-101',
     'teacher'   => 'teacher1',
+    'teachers2' => 'teacher2',
     'students'  => 'student1,student2',
 ], []);
 
@@ -28,6 +29,11 @@ $coursectx = context_course::instance($course->id);
 // ---------- 1. Matriculaciones ----------
 mtrace('==> Matriculaciones (API enrol_try_internal_enrol)');
 $enrolments = [$options['teacher'] => 'editingteacher'];
+foreach (explode(',', $options['teachers2'] ?? '') as $t2) {
+    if (trim($t2) !== '') {
+        $enrolments[trim($t2)] = 'editingteacher';
+    }
+}
 foreach (explode(',', $options['students']) as $s) {
     $enrolments[trim($s)] = 'student';
 }
@@ -170,5 +176,8 @@ seed_quiz('quiz-general', $fixed, $seedcategory ?: null, $course);
 
 mtrace('==> quiz-timed (MC + TF, rápidas de responder)');
 seed_quiz('quiz-timed', [$byname['SEED-MC-01'], $byname['SEED-TF-01']], null, $course);
+
+mtrace('==> quiz-autosubmit (MC + TF — flujo 7: auto-envío al expirar)');
+seed_quiz('quiz-autosubmit', [$byname['SEED-MC-01'], $byname['SEED-TF-01']], null, $course);
 
 mtrace('OK');
