@@ -96,10 +96,6 @@ Para optimizar el tiempo de corrida, los tests nunca hacen login mediante la int
        └─ Pruebas 100% enfocadas en la lógica de negocio, ejecutadas en paralelo
 ```
 
-> Teacher2 es un editor de gradebook dedicado: el "Edit mode" de Moodle es una preferencia de
-> servidor por-usuario, así que separar el rol escritor del lector evita colisiones en paralelo
-> (hallazgo F21). Student3 da un par de aislamiento exclusivo al spec del Cambio 2.
-
 ## 🧪 Testing
 
 - **Smoke & Integración Rápida** (`verify-env.sh`) — 22 aserciones Bash/SQL que validan BD, configuraciones, usuarios y plugins instalados sin levantar un navegador (fail-fast previo a la suite).
