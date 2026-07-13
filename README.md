@@ -155,6 +155,4 @@ Todo el desarrollo se basa en decisiones metódicamente documentadas, enfocándo
 
 ## 📄 License
 
-Propietario — **todos los derechos reservados** ([LICENSE](LICENSE)). Solución de una
-prueba técnica **confidencial** para GES · Universidad Galileo; provista solo para
-evaluación, no para reuso ni fines comerciales. © 2026 David ([@DavidDevGt](https://github.com/DavidDevGt)).
+Propietario — **todos los derechos reservados** ([LICENSE](LICENSE)).
