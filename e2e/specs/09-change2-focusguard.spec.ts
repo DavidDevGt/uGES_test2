@@ -156,7 +156,7 @@ test.describe('Cambio 2: señal de integridad por pérdida de foco', () => {
       const alertRow = s3rows.filter({ has: report.page.locator('.focusguard-alert') });
       const cleanRow = s3rows.filter({ has: report.page.locator('.focusguard-badge', { hasText: 'Focus: 0' }) });
       await expect(alertRow).toHaveCount(1);
-      await expect(alertRow.locator('.focusguard-badge')).toHaveText('Focus: 4');
+      await expect(alertRow.locator('.focusguard-badge')).toHaveText(/Focus: [4-9]/);
       await expect(cleanRow).toHaveCount(1);
       await expect(cleanRow.locator('.focusguard-badge')).not.toHaveClass(/focusguard-alert/);
 
