@@ -97,7 +97,7 @@ jobs:
           docker compose logs --tail=150 moodle
           exit 1
 
-      - name: Seed + verificación del entorno (corre seed 2x + 17 asserts)
+      - name: Seed + verificación del entorno (corre seed 2x + 25 asserts)
         # Fail-fast de ~90s que distingue "entorno roto" de "test roto" (auditoría A4/C6).
         run: bash scripts/verify-env.sh
 

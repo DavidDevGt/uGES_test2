@@ -4,11 +4,12 @@ namespace local_graceguard;
 /**
  * Observer de \mod_quiz\event\attempt_submitted (SPECS §3.2).
  *
- * Detección por doble señal: el quiz debe tener overduehandling=graceperiod con
- * límite de tiempo, Y el intento debe haberse enviado después de expirar el
- * límite (timefinish - timestart > timelimit + tolerancia). Moodle almacena el
- * estado explícito (inprogress → overdue → finished): al recibir este evento el
- * intento ya está finished, por eso la señal temporal es la fuente de verdad.
+ * Detección: el quiz debe tener overduehandling=graceperiod con límite de tiempo,
+ * Y el intento debe haber pasado por el estado 'overdue'. Moodle almacena el estado
+ * explícito (inprogress → overdue → finished); al recibir este evento ya está
+ * finished, así que la señal FIABLE es el evento \mod_quiz\event\attempt_becameoverdue
+ * en el log store (hallazgo F20: el delta temporal timefinish-timestart NO distingue
+ * un envío en gracia inmediato de un envío normal procesado lento).
  *
  * Idempotencia: la KEY unique sobre attemptid en local_graceguard_log garantiza
  * que un regrade o un evento duplicado no aplique la penalización dos veces.

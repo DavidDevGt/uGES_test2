@@ -66,7 +66,7 @@ La matriz de borde del observer (¿gracia exacta en el límite? ¿penalty 0? ¿1
 El flujo de gracia real = esperar 2 min de timer + enviar dentro de 1 min de gracia (el **mínimo** de `graceperiodmin`). En un runner cargado, la ventana de envío es justa. **Mitigación preventiva:** subir gracia a 120 s en el seed (sigue siendo "corto"), y `timed` ya está serializado con timeout propio.
 
 ### C6 — verify-env.sh no corre en el workflow E2E 🟡
-`e2e.yml` hace seed y corre la suite, pero no ejecuta los 17 asserts (fail-fast de 30 s que distingue "entorno roto" de "test roto"). Una línea.
+`e2e.yml` hace seed y corre la suite, pero no ejecuta los 25 asserts (fail-fast de 30 s que distingue "entorno roto" de "test roto"). Una línea.
 
 ---
 

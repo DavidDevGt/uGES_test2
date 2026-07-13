@@ -21,7 +21,7 @@ docker compose up -d          # MariaDB + Moodle 4.5.12 (auto-instala en el 1er 
 Verificación rápida sin navegador (fail-fast, ~90 s):
 
 ```bash
-./scripts/verify-env.sh       # 22 asserts: datos sembrados, plugins en BD, logins reales
+./scripts/verify-env.sh       # 25 asserts: datos sembrados, plugins en BD, logins reales
 ```
 
 Correr la suite:
@@ -111,4 +111,4 @@ Esto es la demostración empírica del "40h → 2h sin perder confianza" ([`40h-
 | 3 | Cuenta 40h → 2h | [`docs/40h-to-2h.md`](40h-to-2h.md) |
 | 4 | Reporte de cobertura | [`docs/coverage-report.md`](coverage-report.md) |
 | 5 | Decisiones y dirección de IA | [`docs/decisions-and-ai-direction.md`](decisions-and-ai-direction.md) (corto) + [`AI_USAGE.md`](../AI_USAGE.md) y [`docs/findings.md`](findings.md) (anexos) |
-| — | Hallazgos (bonus) | [`docs/findings.md`](findings.md) — 23 discrepancias documentación vs. realidad |
+| — | Hallazgos (bonus) | [`docs/findings.md`](findings.md) — 27 discrepancias documentación vs. realidad |

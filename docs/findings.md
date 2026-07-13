@@ -2,6 +2,22 @@
 
 > Bitácora del bonus del enunciado. Cada entrada: qué decía la documentación / qué se esperaba, qué pasó de verdad, evidencia y cómo se resolvió. Fuente cruda del doc de decisiones (`decisions-and-ai-direction.md`).
 
+## 2026-07-13 — Eliminación de flakiness (Flake Rate 100% → 0%)
+
+### F24 — "Un test flaky" eran CUATRO causas raíz distintas (y un bug de CI aparte)
+Al medir el Flake Rate con `scripts/flake-check.sh` (corre la suite N veces y reporta qué test cayó en cuál corrida) apareció un patrón engañoso: fallaba un test distinto en cada corrida. No era un test flaky — eran cuatro problemas distintos, cada uno atacado en su raíz (no con reintentos ciegos):
+
+- **(a) Estado sucio acumulado entre corridas.** Los helpers `delete-quiz`/`close-quiz` usaban `get_record(..., MUST_EXIST)`, que lanza "Multiple records found" en cuanto hay 2+ quizzes homónimos. Una vez que aparecía un duplicado, el teardown NO podía limpiarlo y cada corrida agregaba otro (snowball) → el flujo 4 pasó de flaky a fallar 3/3. **Fix:** teardown con `get_records` (plural) que borra/cierra TODAS las instancias.
+- **(b) Operación sin postcondición garantizada.** `setEditMode` (por el WS `core_change_editmode`) no verificaba que el toggle reflejara el estado pedido; bajo contención la preferencia de sesión no siempre se persistía y el single view no mostraba los inputs de override. **Fix:** reintentar hasta 3× verificando el estado real del toggle tras cada reload.
+- **(c) Colisión de datos entre specs concurrentes.** Los specs 06, 07 y 10 escribían el gradebook del MISMO `student2`. El recompute de la nota-total del curso (`grade_calculator`) es una fila por-usuario compartida: dos escritores concurrentes (uno en `core`, otro en `timed`) se pisaban. La matriz de aislamiento C2 estaba incompleta. **Fix:** un usuario ÚNICO por spec que escribe notas (se sembraron `student4-6`); ningún par de specs concurrentes toca la nota del mismo estudiante.
+- **(d) Contención de recursos contra un solo Moodle.** Con 3 workers, PHP-FPM/DB se saturaban en picos y `waitForMoodleReady` vencía su timeout (dos tests caían juntos = pico de sistema, no bug). **Fix:** `workers: 2` fijos. Fundamento: el runner oficial `moodle-ci-runner` usa una instalación de Moodle POR worker justo para evitar esto; con una sola instancia, 2 es el techo estable.
+
+**Resultado:** Flake Rate **0%** medido en 3 corridas consecutivas (39/39 verde, ~12 min c/u). `scripts/flake-check.sh` queda como herramienta permanente para re-medir en la defensa.
+
+### F13b — El password del pre-flight del quiz falla SOLO en CI (widget passwordunmask)
+- **Real:** el test del flujo 12 (contraseña) pasaba en local (0/3) pero fallaba en GitHub Actions, en el intento inicial Y en el retry. El campo de contraseña del pre-flight es el widget `passwordunmask` (familia F13): al llenarlo por segunda vez (tras rechazar una contraseña incorrecta) el widget re-enmascara el input de forma async y `toHaveValue` pierde la carrera — de forma consistente en el timing del runner de CI.
+- **Resolución:** verificar por OUTCOME (el prompt desaparece = el intento arrancó) en un `toPass` que reintenta el par llenar+enviar, en vez de asertar el valor intermedio del widget. Interacción correcta con el widget: el lápiz "Edit" (revela el input tecleable), no el ojo "Reveal".
+
 ## 2026-07-11 — Montaje del entorno y seeding
 
 ### F1 — `bitnami/moodle` ya no existe en el catálogo gratuito de Docker Hub

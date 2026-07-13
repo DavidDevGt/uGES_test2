@@ -97,7 +97,7 @@ jobs:
       - name: Info de imágenes (digest + tamaño para trazabilidad)
         run: docker images --format '{{.Repository}}:{{.Tag}}  {{.Size}}  {{.Digest}}' | sort
 
-      - name: Verificación del entorno — seed idempotente + 13 asserts + logins
+      - name: Verificación del entorno — seed idempotente + 25 asserts + logins
         run: bash scripts/verify-env.sh
 
       - name: Recolectar logs (siempre, incluso si falla)

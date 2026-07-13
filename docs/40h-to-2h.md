@@ -56,7 +56,7 @@ Estimación del trabajo de un QA validando el módulo de exámenes cada mes, tra
 ## 4. Por qué se sostiene los meses siguientes
 
 - **Corre en CI en cada PR** — nadie tiene que acordarse de ejecutarla.
-- **Los Page Objects aíslan la UI de Moodle** en un solo lugar: un cambio de tema o de versión se arregla una vez, no en 30 tests (los 23 hallazgos de `findings.md` ya están encapsulados ahí).
-- **El seeding programático** (`seed.sh` idempotente + `verify-env.sh` con 22 asserts) elimina la fragilidad de datos.
+- **Los Page Objects aíslan la UI de Moodle** en un solo lugar: un cambio de tema o de versión se arregla una vez, no en 39 tests (los 27 hallazgos de `findings.md` ya están encapsulados ahí).
+- **El seeding programático** (`seed.sh` idempotente + `verify-env.sh` con 25 asserts) elimina la fragilidad de datos.
 - **Costo marginal de un cambio nuevo** = 1 Page Object (si hay pantalla nueva) + 1 spec. Es el camino que se demostrará en vivo con el quinto cambio.
 - **Repetibilidad probada**: la suite corre dos veces seguidas sin intervención y queda verde — no "pasa una vez".

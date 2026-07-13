@@ -2,13 +2,13 @@
 
 > Entregable 5 del enunciado (1–2 páginas). Qué construí y por qué, cómo dirigí la IA, y qué
 > encontré en el camino. Los registros completos son los anexos: `AI_USAGE.md` (dirección de
-> IA, sesión por sesión) y `docs/findings.md` (los 23 hallazgos con causa y evidencia).
+> IA, sesión por sesión) y `docs/findings.md` (los 27 hallazgos con causa y evidencia).
 
 ## Qué construí
 
 Alcance según correo de GES: **automatización del QA del módulo de exámenes (12 flujos, completo)** + **Cambio 2** (señal de integridad por pérdida de foco) + **Cambio 4** (penalización por entrega en período de gracia). Cambios 1 y 3 excluidos por el equipo.
 
-- **Entorno reproducible** (`compose.yml` + `seed.sh`): tres comandos, cero pasos manuales, con `verify-env.sh` (22 asserts) como fail-fast.
+- **Entorno reproducible** (`compose.yml` + `seed.sh`): tres comandos, cero pasos manuales, con `verify-env.sh` (25 asserts) como fail-fast.
 - **Dos plugins `local_`** que no tocan el core: `local_focusguard` (Hooks API + web service AJAX + módulo AMD) y `local_graceguard` (event observer + settings + regrade + mensaje al estudiante).
 - **Suite E2E Playwright + TypeScript**: 36 tests, < 11 min, repetible, con evidencia (trace/video/HTML) y CI en GitHub Actions.
 
@@ -33,7 +33,7 @@ Alcance según correo de GES: **automatización del QA del módulo de exámenes 
 
 ## Qué encontré en el camino (el bonus)
 
-**23 hallazgos documentados** en `findings.md`. Los que más valen para la defensa:
+**27 hallazgos documentados** en `findings.md`. Los que más valen para la defensa:
 
 - **La suite encontró dos bugs reales de los cambios del mes**, no solo del entorno: **F19** — cada navegación entre páginas del intento contaba como pérdida de foco (falso positivo que arruinaba la señal de integridad); **F20/F23** — la detección de gracia y el regrade tienen comportamientos de Moodle no evidentes que definen el diseño correcto. Esto es la demostración empírica del "40h→2h sin perder confianza".
 - **Discrepancias documentación vs. realidad de Moodle 4.5:** la pregunta aleatoria excluye las preguntas ya fijas del quiz (F14); `moosh course-enrol`/`quiz-delete-attempts` incompatibles con 4.5 (F5, F15); `core/togglesensitive` borra el password tecleado durante su init async (F13); el "Edit mode" del gradebook es una preferencia de servidor por-usuario que contamina contextos paralelos (F21).
@@ -41,4 +41,4 @@ Alcance según correo de GES: **automatización del QA del módulo de exámenes 
 
 ## Estado de entrega
 
-36/36 tests verdes, suite repetible (2 corridas consecutivas sin intervención), CI verde. Reproducible con `cp .env.example .env && docker compose up -d && ./scripts/seed.sh && pnpm test`.
+39/39 tests verdes, suite repetible (2 corridas consecutivas sin intervención), CI verde. Reproducible con `cp .env.example .env && docker compose up -d && ./scripts/seed.sh && pnpm test`.

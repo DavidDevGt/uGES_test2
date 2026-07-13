@@ -2,17 +2,19 @@
 
 > Entregable 4 del enunciado. Mapea cada flujo del scope a la parte de la suite que lo
 > cubre, con el assert clave (comportamiento real, no humo), y declara lo excluido con su
-> plan manual. **Estado: 36/36 tests verdes, suite completa < 11 min, repetible (2 corridas
-> consecutivas sin intervención).**
+> plan manual. **Estado: 39/39 tests verdes, suite completa < 13 min, repetible (Flake Rate
+> 0% medido en 3 corridas consecutivas sin intervención — ver §6).**
 
 ## 0. Composición de la suite
 
 | Proyecto Playwright | Tests | Rol |
 |---|---|---|
-| `setup` | 6 | Autenticación por rol → `storageState` (admin, teacher, teacher2, student1-3) |
-| `core` (paralelo) | ~28 | Flujos funcionales y Cambio 2 |
+| `setup` | 9 | Autenticación por rol → `storageState` (admin, teacher, teacher2, student1-6) |
+| `core` (paralelo) | 23 | Smoke + flujos funcionales + Cambio 2 |
 | `timed` (serial) | 7 | Flujos con timer real (flujo 7 y Cambio 4) |
-| **Total** | **36** | |
+| **Total** | **39** | |
+
+Corre con **2 workers** (fijos): toda la suite usa un solo Moodle en Docker, y 2 es el techo estable de concurrencia contra una sola instancia (ver §6 y la nota de estabilidad).
 
 Alcance según correo de GES (2026-07-10): **Cambios 1 y 3 excluidos de la entrega**; se implementan y cubren únicamente **Cambio 2** (`local_focusguard`) y **Cambio 4** (`local_graceguard`).
 
@@ -75,5 +77,13 @@ Alcance según correo de GES (2026-07-10): **Cambios 1 y 3 excluidos de la entre
 ## 5. Evidencia de una corrida
 
 - Reporte HTML de Playwright con trace/video/screenshot por fallo (`playwright-report/`, artefacto de CI).
-- `scripts/verify-env.sh`: 22 asserts de entorno (datos sembrados, plugins instalados, logins reales) como fail-fast previo a la suite.
+- `scripts/verify-env.sh`: 25 asserts de entorno (datos sembrados, plugins instalados, logins reales de los 8 usuarios) como fail-fast previo a la suite.
 - CI en dos workflows: `ci.yml` (análisis estático) + `e2e.yml` (stack → seed → suite, con reporte y logs como artefactos).
+
+## 6. Estabilidad — no flaky (criterio "Calidad del QA")
+
+Medido con `scripts/flake-check.sh N` (corre la suite N veces y reporta el Flake Rate = corridas con fallos / total × 100):
+
+- **Flake Rate 0%** en 3 corridas consecutivas sin intervención (39/39 verde cada una, ~12 min).
+- La eliminación de flakiness reveló **cuatro causas raíz distintas**, cada una atacada en su raíz (detalle en `findings.md` F24): estado sucio acumulado (teardown robusto a duplicados), operación sin postcondición (edit mode con verificación), colisión de datos entre specs (un usuario por escritor de notas), y contención de recursos (`workers: 2`, alineado con cómo `moodle-ci-runner` usa una instalación por worker).
+- Anti-flaky de base: `pending_js` (espera estilo Behat), `storageState` por rol, editor `textarea` (sin TinyMCE), matriz de aislamiento por par (quiz, usuario), cero sleeps fijos, y `retries: 1` en CI como red de seguridad estándar.

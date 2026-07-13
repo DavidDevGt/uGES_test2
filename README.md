@@ -8,7 +8,7 @@ Un framework robusto que unifica la infraestructura efímera (Docker), desarroll
 
 ### 🚀 [Explora el código fuente](https://github.com/DavidDevGt/uGES_test2)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-lightgrey.svg)](LICENSE)
 ![Moodle](https://img.shields.io/badge/Moodle-4.5.12-F98012?logo=moodle&logoColor=white)
 ![Node](https://img.shields.io/badge/node-%E2%89%A5%2022.13-339933?logo=node.js&logoColor=white)
 ![Playwright](https://img.shields.io/badge/Playwright-1.61-2EAD33?logo=playwright&logoColor=white)
@@ -116,7 +116,7 @@ Para optimizar el tiempo de corrida, los tests nunca hacen login mediante la int
 
 ```
 [ Proyecto: setup ]
-  └─ Inicia sesión (1 vez) por cada rol: Admin, Teacher, Teacher2, Student1, Student2, Student3
+  └─ Inicia sesión (1 vez) por cada rol: Admin, Teacher, Teacher2, Student1-6
        └─ Guarda las cookies de sesión en `e2e/.auth/*.json`
 
 [ Proyecto: core / timed ]
@@ -142,7 +142,7 @@ El repositorio cuenta con dos flujos críticos definidos en [`.github/workflows/
 Todo el desarrollo se basa en decisiones metódicamente documentadas, enfocándose en un robusto control y prevención de regresiones:
 
 - **Imagen Docker (desviación declarada)** — El enunciado sugiere "Bitnami o la oficial". Bitnami fue retirada del catálogo gratuito de Docker Hub (2025) y `moodlehq/moodle-php-apache` no contiene Moodle; se usa `erseco/alpine-moodle` (auto-instala, trae `moosh`). Justificación completa: hallazgo F1 en [`docs/findings.md`](docs/findings.md).
-- **Workarounds de Moodle 4.5 Documentados** — La bitácora [`docs/findings.md`](docs/findings.md) detalla **23 hallazgos** de discrepancia entre lo documentado y el comportamiento real: dos bugs de los cambios cazados por la propia suite (F19, F20), el borrado de password por `togglesensitive` async (F13), y la carrera del "Edit mode" del gradebook en paralelo (F21), entre otros.
+- **Workarounds de Moodle 4.5 Documentados** — La bitácora [`docs/findings.md`](docs/findings.md) detalla **27 hallazgos** de discrepancia entre lo documentado y el comportamiento real: dos bugs de los cambios cazados por la propia suite (F19, F20), el borrado de password por `togglesensitive` async (F13), y la carrera del "Edit mode" del gradebook en paralelo (F21), entre otros.
 - **Rendimiento de CI** — En lugar de reinstalar Moodle en múltiples jobs, todo ocurre en una máquina optimizada; un solo levantamiento de imagen procesa todo el stack.
 
 ### 📚 Documentación de entrega
@@ -155,4 +155,6 @@ Todo el desarrollo se basa en decisiones metódicamente documentadas, enfocándo
 
 ## 📄 License
 
-[MIT](LICENSE) © David ([@DavidDevGt](https://github.com/DavidDevGt))
+Propietario — **todos los derechos reservados** ([LICENSE](LICENSE)). Solución de una
+prueba técnica **confidencial** para GES · Universidad Galileo; provista solo para
+evaluación, no para reuso ni fines comerciales. © 2026 David ([@DavidDevGt](https://github.com/DavidDevGt)).
