@@ -13,7 +13,13 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: CI,
   retries: CI ? 1 : 0, // retry=1 solo en CI, con trace para diagnosticar (SPECS §4.2)
-  workers: 3,
+  // 2 workers FIJOS: toda la suite corre contra UN solo Moodle en Docker.
+  // moodle-ci-runner (el runner oficial) usa una instalación por worker justo para
+  // evitar esta contención; con una sola instancia, 3 workers saturaban PHP-FPM/DB
+  // en picos y disparaban timeouts de waitForMoodleReady (F24 — 02 y 07 caían
+  // juntos por sobrecarga del sistema, no por bug). 2 es el techo estable; el
+  // proyecto "timed" es timer-bound, así que el costo en tiempo es mínimo.
+  workers: 2,
   reporter: [['list'], ['html', { open: 'never' }]],
   timeout: 60_000,
   expect: { timeout: 10_000 }, // Moodle bajo Docker no es instantáneo; web-first assertions absorben la latencia
