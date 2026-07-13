@@ -38,28 +38,56 @@ Requiere **Node ≥ 22.13**.
 
 ## 🚀 Quick Start
 
-```bash
-# 1. Instalar dependencias (Node ≥ 22.13 — ver package.json; pnpm recomendado)
-pnpm install
+### Prerrequisitos
+- **Node.js**: `≥ 22.13` (se recomienda usar `pnpm` o `npm`).
+- **Docker** y **Docker Compose**: Para levantar la infraestructura efímera (MariaDB + Moodle Alpine).
+- **Bash**: Para ejecutar los scripts de orquestación (incluido por defecto en Linux/macOS y mediante Git Bash o WSL en Windows).
 
-# 2. Configurar variables de entorno y levantar la infraestructura
+### Instrucciones de despliegue paso a paso
+
+```bash
+# 1. Clonar el repositorio y entrar al directorio
+git clone <URL_DEL_REPOSITORIO> uGES_test2
+cd uGES_test2
+
+# 2. Instalar dependencias de automatización (Playwright)
+pnpm install
+# (Si no usas pnpm, puedes utilizar `npm install`)
+
+# 3. Configurar variables de entorno y levantar la infraestructura Moodle
 cp .env.example .env
 docker compose up -d
+# Espera alrededor de 30-60 segundos para que los contenedores inicialicen.
 
-# 3. Sembrar datos, compilar AMD JS y configurar la academia Moodle
+# 4. Sembrar datos de prueba
+# Este script crea los usuarios (admin, profesores, estudiantes), configura 
+# el curso (QA-EXAMS-101), compila el AMD JS de Moodle e instala los plugins.
 ./scripts/seed.sh
-
-# 4. Correr la suite de pruebas end-to-end
-pnpm test
 ```
 
-| Script                   | Qué hace                                            |
+> [!NOTE]
+> Una vez finalizado el script, la instancia de Moodle estará disponible en **http://localhost:8080**.
+> **Credenciales del Administrador:** Usuario: `admin` | Contraseña: `Admin123!`
+
+### Ejecución de Pruebas Automatizadas (Playwright)
+
+```bash
+# 1. Correr la suite E2E completa de manera desatendida
+pnpm test
+
+# 2. (Opcional) Visualizar el reporte HTML de los resultados y evidencias
+pnpm exec playwright show-report
+```
+
+### Comandos útiles disponibles
+
+| Comando                  | Qué hace                                            |
 | ------------------------ | --------------------------------------------------- |
-| `pnpm test`              | Corre la suite E2E en consola (headless)            |
-| `pnpm test:ui`           | Abre Playwright UI Mode para depuración visual      |
-| `pnpm test:ci`           | Suite E2E con reporte HTML y formato GitHub         |
-| `pnpm test:debug`        | Lanza los tests con el inspector adjunto            |
-| `pnpm lint`              | Análisis estático TypeScript (`tsc --noEmit`)       |
+| `pnpm test`              | Corre la suite E2E en consola (headless).           |
+| `pnpm test:ui`           | Abre Playwright UI Mode para depuración visual interactiva. |
+| `pnpm test:ci`           | Suite E2E con reporte HTML (usado en GitHub Actions). |
+| `pnpm exec playwright show-report` | Muestra el reporte HTML de la última corrida en el navegador. |
+| `pnpm lint`              | Análisis estático de código TypeScript (`tsc --noEmit`). |
 
 ## 🏗️ Arquitectura
 
