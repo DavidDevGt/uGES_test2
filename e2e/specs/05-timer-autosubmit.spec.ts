@@ -18,7 +18,7 @@ const PAIR = TESTDATA.attemptPairs.timer;
 const COURSE = TESTDATA.course.fullname;
 
 test.describe('flujo 7: timer y auto-envío', () => {
-  test.use({ storageState: STORAGE.student1 });
+  test.use({ storageState: STORAGE.student5 });
 
   test.beforeAll(() => {
     resetAttempts(PAIR.quiz, PAIR.user);

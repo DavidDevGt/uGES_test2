@@ -40,11 +40,18 @@ export default defineConfig({
       name: 'core',
       dependencies: ['setup'],
       testIgnore: /05-timer|10-change4/,
+      // 90s (no los 60s globales): bajo 3 workers contra un solo Moodle en Docker,
+      // operaciones legítimas (crear quiz, agregar 6 preguntas) rozan los 40s y la
+      // contención puede empujarlas más. Un hang real sigue fallando a los 90s.
+      timeout: 90_000,
       use: { ...devices['Desktop Chrome'] },
     },
     {
       // Los specs donde el timer real ES el sujeto de la prueba: sin paralelismo interno
-      // y con presupuesto de tiempo propio (timer 2 min + gracia 1 min + margen).
+      // y con presupuesto de tiempo propio (timer 2 min + gracia 2 min + margen).
+      // Depende solo de 'setup' (NO de 'core'): un flake de core no debe saltar toda
+      // la cobertura de timer/Cambio 4. La contención se controla con los timeouts y
+      // el aislamiento de datos, no serializando proyectos.
       name: 'timed',
       dependencies: ['setup'],
       testMatch: /05-timer|10-change4/,

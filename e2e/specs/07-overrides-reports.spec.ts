@@ -19,13 +19,13 @@ import { GradebookPage } from '../pages/GradebookPage';
 const PAIR = TESTDATA.attemptPairs.reports;
 const COURSE = TESTDATA.course.fullname;
 const QUIZ = TESTDATA.quizzes.autosubmit.name;
-const STUDENT2_FULLNAME = 'Sara StudentTwo';
+const STUDENT_FULLNAME = 'Sasha StudentFour'; // par de aislamiento reports = student4
 const OVERRIDE_GRADE = '1.50';
 
 test.describe.configure({ mode: 'serial' });
 
 test.describe('flujo 11: overrides de nota y reportes del examen', () => {
-  test.use({ storageState: STORAGE.student2 });
+  test.use({ storageState: STORAGE.student4 });
 
   // teacher2 (editor dedicado) hace el override: el "Edit mode" del gradebook es
   // una preferencia de servidor por-usuario y no debe compartirse con los specs
@@ -46,9 +46,9 @@ test.describe('flujo 11: overrides de nota y reportes del examen', () => {
     try {
       const report = new AttemptsReportPage(await teacherCtx.newPage());
       await report.open(COURSE, QUIZ);
-      const row = report.attemptRow(STUDENT2_FULLNAME);
+      const row = report.attemptRow(STUDENT_FULLNAME);
       await expect(row).toContainText('Finished');
-      await expect(report.reviewLink(STUDENT2_FULLNAME)).toBeVisible();
+      await expect(report.reviewLink(STUDENT_FULLNAME)).toBeVisible();
     } finally {
       await teacherCtx.close();
     }
@@ -70,7 +70,7 @@ test.describe('flujo 11: overrides de nota y reportes del examen', () => {
 
       // El grader report refleja la nota sobreescrita.
       await gradebook.open(COURSE);
-      await expect(gradebook.studentRow(STUDENT2_FULLNAME)).toContainText(OVERRIDE_GRADE);
+      await expect(gradebook.studentRow(STUDENT_FULLNAME)).toContainText(OVERRIDE_GRADE);
 
       // Revertir (auto-limpieza para repetibilidad).
       await gradebook.openSingleViewForUser(COURSE, userId);
@@ -78,7 +78,7 @@ test.describe('flujo 11: overrides de nota y reportes del examen', () => {
       await gradebook.saveSingleView();
 
       await gradebook.open(COURSE);
-      await expect(gradebook.studentRow(STUDENT2_FULLNAME)).not.toContainText(OVERRIDE_GRADE);
+      await expect(gradebook.studentRow(STUDENT_FULLNAME)).not.toContainText(OVERRIDE_GRADE);
     } finally {
       await teacherCtx.close();
     }

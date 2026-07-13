@@ -31,9 +31,9 @@ bash scripts/seed.sh >/dev/null
 
 echo "==> [3/4] Asserts de datos sembrados (SQL directo)"
 check "usuarios de prueba" \
-  "$(sql_num "SELECT COUNT(*) FROM mdl_user WHERE username IN ('teacher1','teacher2','student1','student2','student3') AND deleted=0")" "5"
+  "$(sql_num "SELECT COUNT(*) FROM mdl_user WHERE username IN ('teacher1','teacher2','student1','student2','student3','student4','student5','student6') AND deleted=0")" "8"
 check "matriculados en QA-EXAMS-101" \
-  "$(sql_num "SELECT COUNT(DISTINCT ue.userid) FROM mdl_user_enrolments ue JOIN mdl_enrol e ON e.id=ue.enrolid JOIN mdl_course c ON c.id=e.courseid WHERE c.shortname='${COURSE_SHORTNAME:-QA-EXAMS-101}'")" "5"
+  "$(sql_num "SELECT COUNT(DISTINCT ue.userid) FROM mdl_user_enrolments ue JOIN mdl_enrol e ON e.id=ue.enrolid JOIN mdl_course c ON c.id=e.courseid WHERE c.shortname='${COURSE_SHORTNAME:-QA-EXAMS-101}'")" "8"
 check "preguntas SEED- (6 base + 2 reserva del pool aleatorio, sin duplicados)" \
   "$(sql_num "SELECT COUNT(*) FROM mdl_question WHERE name LIKE 'SEED-%'")" "8"
 check "slots de quiz-general (6 fijas + 1 aleatoria)" \
@@ -81,6 +81,9 @@ login_check "${TEACHER2_USER:-teacher2}"    "${TEACHER2_PASS:-Teacher123!}"
 login_check "${STUDENT1_USER:-student1}"    "${STUDENT1_PASS:-Student123!}"
 login_check "${STUDENT2_USER:-student2}"    "${STUDENT2_PASS:-Student123!}"
 login_check "${STUDENT3_USER:-student3}"    "${STUDENT3_PASS:-Student123!}"
+login_check "${STUDENT4_USER:-student4}"    "${STUDENT4_PASS:-Student123!}"
+login_check "${STUDENT5_USER:-student5}"    "${STUDENT5_PASS:-Student123!}"
+login_check "${STUDENT6_USER:-student6}"    "${STUDENT6_PASS:-Student123!}"
 
 echo ""
 echo "=========== VERIFY-ENV: $PASS ok, $FAIL fail ==========="

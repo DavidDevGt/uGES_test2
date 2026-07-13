@@ -2,7 +2,16 @@ import path from 'node:path';
 import type { Browser, BrowserContext } from '@playwright/test';
 
 /** Roles sembrados por scripts/seed.sh (SPECS §1.2). */
-export type Role = 'admin' | 'teacher' | 'teacher2' | 'student1' | 'student2' | 'student3';
+export type Role =
+  | 'admin'
+  | 'teacher'
+  | 'teacher2'
+  | 'student1'
+  | 'student2'
+  | 'student3'
+  | 'student4'
+  | 'student5'
+  | 'student6';
 
 export const ROLES: readonly Role[] = [
   'admin',
@@ -11,6 +20,9 @@ export const ROLES: readonly Role[] = [
   'student1',
   'student2',
   'student3',
+  'student4',
+  'student5',
+  'student6',
 ];
 
 /** Credenciales desde .env — mismos defaults que .env.example y seed.sh. */
@@ -39,6 +51,18 @@ export const CREDS: Record<Role, { username: string; password: string }> = {
     username: process.env.STUDENT3_USER ?? 'student3',
     password: process.env.STUDENT3_PASS ?? 'Student123!',
   },
+  student4: {
+    username: process.env.STUDENT4_USER ?? 'student4',
+    password: process.env.STUDENT4_PASS ?? 'Student123!',
+  },
+  student5: {
+    username: process.env.STUDENT5_USER ?? 'student5',
+    password: process.env.STUDENT5_PASS ?? 'Student123!',
+  },
+  student6: {
+    username: process.env.STUDENT6_USER ?? 'student6',
+    password: process.env.STUDENT6_PASS ?? 'Student123!',
+  },
 };
 
 /** storageState por rol, generado por auth.setup.ts. Directorio ignorado por git (cookies de sesión). */
@@ -50,6 +74,9 @@ export const STORAGE: Record<Role, string> = {
   student1: path.join(AUTH_DIR, 'student1.json'),
   student2: path.join(AUTH_DIR, 'student2.json'),
   student3: path.join(AUTH_DIR, 'student3.json'),
+  student4: path.join(AUTH_DIR, 'student4.json'),
+  student5: path.join(AUTH_DIR, 'student5.json'),
+  student6: path.join(AUTH_DIR, 'student6.json'),
 };
 
 /**

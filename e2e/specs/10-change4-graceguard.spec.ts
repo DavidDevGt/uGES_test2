@@ -18,7 +18,7 @@ import { GradebookPage } from '../pages/GradebookPage';
 
 const PAIR = TESTDATA.attemptPairs.gracePenalty;
 const COURSE = TESTDATA.course.fullname;
-const STUDENT2_FULLNAME = 'Sara StudentTwo';
+const STUDENT_FULLNAME = 'Selena StudentSix'; // par gracePenalty = student6
 
 /**
  * Ejecuta un intento que EXPIRA: responde la MC (1.00 base), deja correr el timer
@@ -52,7 +52,7 @@ async function expectGradebook(browserLike: Parameters<typeof newContextAs>[0], 
   try {
     const gradebook = new GradebookPage(await teacherCtx.newPage());
     await gradebook.open(COURSE);
-    await expect(gradebook.studentRow(STUDENT2_FULLNAME)).toContainText(grade);
+    await expect(gradebook.studentRow(STUDENT_FULLNAME)).toContainText(grade);
   } finally {
     await teacherCtx.close();
   }
@@ -61,7 +61,7 @@ async function expectGradebook(browserLike: Parameters<typeof newContextAs>[0], 
 test.describe.configure({ mode: 'serial' });
 
 test.describe('Cambio 4: penalización por entrega en período de gracia', () => {
-  test.use({ storageState: STORAGE.student2 });
+  test.use({ storageState: STORAGE.student6 });
 
   test.beforeAll(() => {
     setGraceguardConfig(10, true);
@@ -126,7 +126,7 @@ test.describe('Cambio 4: penalización por entrega en período de gracia', () =>
     try {
       const report = new AttemptsReportPage(await teacherCtx.newPage());
       await report.open(COURSE, PAIR.quiz);
-      await report.regradeAttemptOf(STUDENT2_FULLNAME);
+      await report.regradeAttemptOf(STUDENT_FULLNAME);
     } finally {
       await teacherCtx.close();
     }

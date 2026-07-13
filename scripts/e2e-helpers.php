@@ -25,24 +25,34 @@ switch ($cmd) {
         break;
 
     case 'delete-quiz': {
+        // get_records (plural), no get_record: si un teardown previo dejó duplicados,
+        // get_record lanza "Multiple records found" y los duplicados nunca se limpian
+        // (snowball que volvía el flujo 4 flaky→determinista). Se borran TODOS.
         $course = $DB->get_record('course', ['shortname' => $argv[2]], '*', MUST_EXIST);
-        $quiz = $DB->get_record('quiz', ['course' => $course->id, 'name' => $argv[3]]);
-        if (!$quiz) {
-            echo "absent\n";
-            break;
+        $quizzes = $DB->get_records('quiz', ['course' => $course->id, 'name' => $argv[3]]);
+        $n = 0;
+        foreach ($quizzes as $quiz) {
+            [$c, $cm] = get_course_and_cm_from_instance($quiz, 'quiz');
+            course_delete_module($cm->id);
+            $n++;
         }
-        [$c, $cm] = get_course_and_cm_from_instance($quiz, 'quiz');
-        course_delete_module($cm->id);
-        echo "deleted\n";
+        echo $n > 0 ? "deleted=$n\n" : "absent\n";
         break;
     }
 
     case 'close-quiz': {
+        // Cierra TODAS las instancias con ese nombre (robusto ante duplicados).
         $course = $DB->get_record('course', ['shortname' => $argv[2]], '*', MUST_EXIST);
-        $quiz = $DB->get_record('quiz', ['course' => $course->id, 'name' => $argv[3]], '*', MUST_EXIST);
-        $DB->set_field('quiz', 'timeclose', (int) $argv[4], ['id' => $quiz->id]);
+        $quizzes = $DB->get_records('quiz', ['course' => $course->id, 'name' => $argv[3]]);
+        if (!$quizzes) {
+            echo "absent\n";
+            break;
+        }
+        foreach ($quizzes as $quiz) {
+            $DB->set_field('quiz', 'timeclose', (int) $argv[4], ['id' => $quiz->id]);
+        }
         purge_all_caches();
-        echo "ok timeclose=", (int) $argv[4], PHP_EOL;
+        echo 'ok timeclose=', (int) $argv[4], ' n=', count($quizzes), PHP_EOL;
         break;
     }
 

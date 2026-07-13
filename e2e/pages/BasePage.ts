@@ -18,11 +18,18 @@ export class BasePage {
   }
 
   async waitForMoodleReady(): Promise<void> {
-    await this.page.waitForFunction(() => {
-      type MoodleWindow = Window & { M?: { util?: { pending_js?: unknown[] } } };
-      const util = (window as MoodleWindow).M?.util;
-      return util?.pending_js !== undefined && util.pending_js.length === 0;
-    });
+    // Timeout propio de 45s (no el del test): falla con un mensaje claro de
+    // "Moodle no terminó su JS" en vez de consumir en silencio todo el presupuesto
+    // del test; deja headroom dentro de los 90s de los specs core bajo contención.
+    await this.page.waitForFunction(
+      () => {
+        type MoodleWindow = Window & { M?: { util?: { pending_js?: unknown[] } } };
+        const util = (window as MoodleWindow).M?.util;
+        return util?.pending_js !== undefined && util.pending_js.length === 0;
+      },
+      undefined,
+      { timeout: 45_000 },
+    );
   }
 
   /** Abre la página principal del curso desde "My courses". */
@@ -60,41 +67,48 @@ export class BasePage {
   }
 
   /**
-   * Cambia el Edit mode del usuario actual vía el endpoint interno de Moodle.
-   * Evita la contención del auto-submit del toggle en UI durante la ejecución
-   * paralela de tests.
+   * Cambia el Edit mode del usuario actual vía el web service `core_change_editmode`
+   * (evita la contención del auto-submit del toggle en UI). Garantiza su
+   * postcondición: reintenta hasta 3 veces verificando que el toggle refleje el
+   * estado pedido tras recargar. Sin la verificación, bajo contención la sesión de
+   * edit mode no siempre se persistía y el single view no mostraba los inputs de
+   * override (F24, último test flaky). Un fallo persistente lanza con mensaje claro.
    */
   async setEditMode(on: boolean): Promise<void> {
-    const toggleLocator = this.page.locator('.editmode-switch-form input[type="checkbox"]');
-    
-    // Esperar a que el toggle de edición exista en el DOM.
-    // En modo headed o bajo carga, Moodle puede demorar en inyectarlo.
-    await toggleLocator.waitFor({ state: 'attached', timeout: 30000 });
+    const toggle = this.page.locator('.editmode-switch-form input[type="checkbox"]');
+    await toggle.waitFor({ state: 'attached', timeout: 30_000 });
 
-    const isChecked = await toggleLocator.isChecked();
-    if (isChecked === on) {
-      return;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if ((await toggle.isChecked()) === on) {
+        return;
+      }
+      const contextId = await toggle.evaluate((el: HTMLInputElement) => el.dataset.context);
+
+      await this.page.evaluate(
+        async ({ context, setmode }) => {
+          await new Promise<void>((resolve, reject) => {
+            // @ts-expect-error require (RequireJS) es global en las páginas de Moodle
+            require(['core/ajax'], function (ajax) {
+              if (!context) {
+                reject(new Error('No context id en el toggle de edit mode'));
+                return;
+              }
+              ajax
+                .call([{ methodname: 'core_change_editmode', args: { context: Number(context), setmode } }])[0]
+                .then(() => resolve())
+                .catch(reject);
+            });
+          });
+        },
+        { context: contextId, setmode: on },
+      );
+
+      await this.page.reload();
+      await this.waitForMoodleReady();
     }
 
-    const contextId = await toggleLocator.evaluate((el: HTMLInputElement) => el.dataset.context);
-
-    await this.page.evaluate(async ({ context, setmode }) => {
-      return new Promise<void>((resolve, reject) => {
-        // @ts-ignore
-        require(['core/ajax'], function (ajax) {
-          if (!context) {
-            reject(new Error('No context found for edit mode toggle'));
-            return;
-          }
-          ajax.call([{
-            methodname: 'core_change_editmode',
-            args: { context, setmode }
-          }])[0].then(() => resolve()).catch(reject);
-        });
-      });
-    }, { context: contextId, setmode: on });
-
-    await this.page.reload();
-    await this.waitForMoodleReady();
+    if ((await toggle.isChecked()) !== on) {
+      throw new Error(`No se pudo poner Edit mode en ${on} tras 3 intentos`);
+    }
   }
 }

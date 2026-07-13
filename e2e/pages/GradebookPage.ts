@@ -41,13 +41,23 @@ export class GradebookPage extends BasePage {
    */
   async openSingleViewForUser(courseFullname: string, userId: number): Promise<void> {
     await this.openCourse(courseFullname);
-    // El single view requiere Edit mode para los inputs override_*/finalgrade_*.
-    // Activamos el modo en la vista del curso donde el toggle siempre está presente de forma segura.
-    await this.setEditMode(true);
-    
     const courseId = this.cmidFromUrl();
-    await this.page.goto(`/grade/report/singleview/index.php?id=${courseId}&item=user&itemid=${userId}`);
-    await this.waitForMoodleReady();
+    const url = `/grade/report/singleview/index.php?id=${courseId}&item=user&itemid=${userId}`;
+
+    // El single view requiere Edit mode para los inputs override_*/finalgrade_*.
+    // Auto-reparación: si tras navegar los inputs no están (el AJAX de edit mode se
+    // perdió bajo contención), se reintenta una vez. Elimina la carrera del toggle
+    // que hacía flaky al override en la suite completa (F24).
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await this.setEditMode(true);
+      await this.page.goto(url);
+      await this.waitForMoodleReady();
+      if ((await this.page.locator('input[name^="override_"]').count()) > 0) {
+        return;
+      }
+    }
+    // Última verificación explícita: si sigue sin inputs, es un fallo real, no flaky.
+    await expect(this.page.locator('input[name^="override_"]').first()).toBeVisible();
   }
 
   /** Fila de un grade item dentro del single view. */

@@ -37,12 +37,16 @@ export const TESTDATA = {
    * los intentos en vuelo de otro spec. Los specs read-only pueden compartir usuario.
    */
   attemptPairs: {
+    // Usuario ÚNICO por spec que escribe notas (el recompute de nota-total del curso
+    // es una fila por-usuario compartida; dos escritores concurrentes se pisan → flaky):
+    //   core paralelo → student1(04), student2(06), student3(09), student4(07)
+    //   timed paralelo → student5(05), student6(10)  — disjuntos de los de core.
     studentFlows: { quiz: 'quiz-general', user: 'student1' }, // spec 04 (flujos 6, 8, 9)
     grading: { quiz: 'quiz-general', user: 'student2' }, // spec 06 (flujo 10)
     focusguard: { quiz: 'quiz-general', user: 'student3' }, // spec 09 (Cambio 2)
-    timer: { quiz: 'quiz-autosubmit', user: 'student1' }, // spec 05 (flujo 7 — proyecto timed)
-    reports: { quiz: 'quiz-autosubmit', user: 'student2' }, // spec 07 (flujo 11: override + reportes)
-    gracePenalty: { quiz: 'quiz-timed', user: 'student2' }, // spec 10 (Cambio 4 — proyecto timed)
+    reports: { quiz: 'quiz-autosubmit', user: 'student4' }, // spec 07 (flujo 11: override + reportes)
+    timer: { quiz: 'quiz-autosubmit', user: 'student5' }, // spec 05 (flujo 7 — proyecto timed)
+    gracePenalty: { quiz: 'quiz-timed', user: 'student6' }, // spec 10 (Cambio 4 — proyecto timed)
   },
   questions: {
     multichoice: { name: 'SEED-MC-01', correct: 'París' },

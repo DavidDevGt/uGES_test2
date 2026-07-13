@@ -93,6 +93,13 @@ ensure_user "${STUDENT1_USER:-student1}" "${STUDENT1_PASS:-Student123!}" "Sam"  
 ensure_user "${STUDENT2_USER:-student2}" "${STUDENT2_PASS:-Student123!}" "Sara"  "StudentTwo"
 # student3: par exclusivo del spec 09 (Cambio 2) — matriz de aislamiento C2
 ensure_user "${STUDENT3_USER:-student3}" "${STUDENT3_PASS:-Student123!}" "Sofi"  "StudentThree"
+# student4-6: pares exclusivos para los specs que ESCRIBEN notas concurrentemente
+# (07 override, 05 timer, 10 graceguard). El recompute de nota-total del curso es
+# una fila por-usuario compartida: dos specs escribiendo el mismo usuario en
+# paralelo (uno en core, otro en timed) se pisan → flaky. Un usuario por escritor.
+ensure_user "${STUDENT4_USER:-student4}" "${STUDENT4_PASS:-Student123!}" "Sasha"  "StudentFour"
+ensure_user "${STUDENT5_USER:-student5}" "${STUDENT5_PASS:-Student123!}" "Sergio" "StudentFive"
+ensure_user "${STUDENT6_USER:-student6}" "${STUDENT6_PASS:-Student123!}" "Selena" "StudentSix"
 
 # Matriculaciones: las hace seed-course-setup.php vía API
 # (hallazgo 2026-07-11: moosh course-enrol es incompatible con Moodle 4.5 — pierde \$CFG->dirroot).
@@ -167,7 +174,7 @@ docker compose exec -T moodle php /tmp/seed-course-setup.php \
   --shortname="$COURSE_SHORTNAME" \
   --teacher="${TEACHER_USER:-teacher1}" \
   --teachers2="${TEACHER2_USER:-teacher2}" \
-  --students="${STUDENT1_USER:-student1},${STUDENT2_USER:-student2},${STUDENT3_USER:-student3}"
+  --students="${STUDENT1_USER:-student1},${STUDENT2_USER:-student2},${STUDENT3_USER:-student3},${STUDENT4_USER:-student4},${STUDENT5_USER:-student5},${STUDENT6_USER:-student6}"
 
 echo "==> Endurecimiento para E2E: deshabilitar user tours (diálogos de onboarding rompen los tests)"
 moosh_ sql-run "UPDATE mdl_tool_usertours_tours SET enabled=0" >/dev/null
@@ -179,7 +186,7 @@ echo ""
 echo "=========== RESUMEN SEED ==========="
 echo " categoria   : $CATEGORY_NAME (id=$CATID)"
 echo " curso       : $COURSE_SHORTNAME (id=$COURSEID)"
-echo " usuarios    : ${TEACHER_USER:-teacher1}, ${STUDENT1_USER:-student1}, ${STUDENT2_USER:-student2}, ${STUDENT3_USER:-student3}"
+echo " usuarios    : ${TEACHER_USER:-teacher1}, teacher2, student1-6 (6 estudiantes)"
 echo " quiz-autosub: id=$QUIZAUTO (60s autosubmit, para flujo 7)"
 echo " preguntas   : $NQ con prefijo SEED-"
 echo " quiz-general: id=$QUIZGEN (sin límite)"
