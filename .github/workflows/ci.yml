@@ -45,7 +45,7 @@ jobs:
         # Sin 'version:' → lee packageManager de package.json (pnpm@11.9.0).
         # Evita el conflicto ERR_PNPM_BAD_PM_VERSION.
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
